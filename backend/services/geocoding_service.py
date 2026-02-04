@@ -10,8 +10,15 @@ class GeocodingService:
     def __init__(self) -> None:
         self._geolocator = Nominatim(user_agent="zodiac-compatibility-checker")
         self._google_key = os.getenv("GOOGLE_GEOCODING_API_KEY")
+        self._default_country = os.getenv("DEFAULT_COUNTRY", "Vietnam")
 
     def geocode(self, place: str) -> Tuple[Optional[float], Optional[float], Optional[str]]:
+        place = place.strip()
+        if place and self._default_country:
+            lower_place = place.lower()
+            lower_country = self._default_country.lower()
+            if lower_country not in lower_place:
+                place = f"{place}, {self._default_country}"
         try:
             location = self._geolocator.geocode(place)
             if location:
