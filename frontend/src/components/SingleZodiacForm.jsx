@@ -12,7 +12,7 @@ const defaultPerson = {
   birth_date: '',
   birth_time: '',
   time_unknown: false,
-  birth_place: ''
+  birth_place: 'Vietnam'
 }
 
 export default function SingleZodiacForm() {
@@ -32,7 +32,7 @@ export default function SingleZodiacForm() {
       const data = await fetchNatal(payload)
       setResult('natal', data)
     } catch (error) {
-      setError(error?.response?.data?.detail || 'Đã có lỗi xảy ra')
+      setError(error?.response?.data?.detail || '?? c? l?i x?y ra')
       setLoading(false)
     }
   }
@@ -41,32 +41,32 @@ export default function SingleZodiacForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card className="bg-white/3">
         <CardHeader>
-          <CardTitle>Thông tin của bạn</CardTitle>
+          <CardTitle>Th?ng tin c?a b?n</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
             <div>
-              <label className="text-xs uppercase tracking-wide text-white/60">Tên (không bắt buộc)</label>
+              <label className="text-xs uppercase tracking-wide text-white/60">T?n (kh?ng b?t bu?c)</label>
               <Input
                 value={person.name}
                 onChange={(e) => setPerson({ ...person, name: e.target.value })}
-                placeholder="Ví dụ: Linh"
+                placeholder="V? d?: Linh"
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-wide text-white/60">Giới tính</label>
+              <label className="text-xs uppercase tracking-wide text-white/60">Gi?i t?nh</label>
               <Select
                 value={person.gender}
                 onChange={(e) => setPerson({ ...person, gender: e.target.value })}
               >
-                <option value="female">Nữ</option>
+                <option value="female">N?</option>
                 <option value="male">Nam</option>
-                <option value="other">Khác</option>
+                <option value="other">Kh?c</option>
               </Select>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs uppercase tracking-wide text-white/60">Ngày sinh</label>
+                <label className="text-xs uppercase tracking-wide text-white/60">Ng?y sinh</label>
                 <Input
                   type="date"
                   value={person.birth_date}
@@ -74,7 +74,7 @@ export default function SingleZodiacForm() {
                 />
               </div>
               <div>
-                <label className="text-xs uppercase tracking-wide text-white/60">Giờ sinh</label>
+                <label className="text-xs uppercase tracking-wide text-white/60">Gi? sinh</label>
                 <Input
                   type="time"
                   value={person.birth_time}
@@ -87,16 +87,16 @@ export default function SingleZodiacForm() {
                     checked={person.time_unknown}
                     onChange={(e) => setPerson({ ...person, time_unknown: e.target.checked })}
                   />
-                  Không rõ giờ sinh
+                  Kh?ng r? gi? sinh
                 </label>
               </div>
             </div>
             <div>
-              <label className="text-xs uppercase tracking-wide text-white/60">Nơi sinh</label>
+              <label className="text-xs uppercase tracking-wide text-white/60">N?i sinh</label>
               <Input
                 value={person.birth_place}
                 onChange={(e) => setPerson({ ...person, birth_place: e.target.value })}
-                placeholder="Thành phố, quốc gia"
+                placeholder="Th?nh ph?, Vietnam"
               />
             </div>
           </div>
@@ -104,7 +104,7 @@ export default function SingleZodiacForm() {
       </Card>
 
       <div className="flex justify-center">
-        <Button type="submit" variant="cute" className="px-10">Xem cung hoàng đạo</Button>
+        <Button type="submit" variant="cute" className="px-10">Xem cung ho?ng ??o</Button>
       </div>
     </form>
   )

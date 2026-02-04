@@ -7,8 +7,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"DM Serif Display"', 'serif'],
-        body: ['"Work Sans"', 'system-ui', 'sans-serif']
+        display: ['"Literata"', 'serif'],
+        body: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif']
       },
       colors: {
         ink: {

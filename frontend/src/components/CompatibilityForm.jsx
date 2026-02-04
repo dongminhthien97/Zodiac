@@ -12,7 +12,7 @@ const defaultPerson = {
   birth_date: '',
   birth_time: '',
   time_unknown: false,
-  birth_place: ''
+  birth_place: 'Vietnam'
 }
 
 function PersonForm({ title, person, onChange }) {
@@ -74,7 +74,7 @@ function PersonForm({ title, person, onChange }) {
             <Input
               value={person.birth_place}
               onChange={(e) => onChange({ ...person, birth_place: e.target.value })}
-              placeholder="Thành phố, quốc gia"
+              placeholder="Thành phố, Vietnam"
             />
           </div>
         </div>
