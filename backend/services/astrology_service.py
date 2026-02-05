@@ -1,11 +1,14 @@
 from __future__ import annotations
 import os
 import logging
+import os
 import tempfile
-import shutil
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
+
+from models.schemas import BirthInfo, CompatibilityDetails, NatalChart, PlanetPosition
+from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIGN_RANGES
 
 # 1. THIẾT LẬP CẤU HÌNH HỆ THỐNG
 GEONAMES_USER = "century.boy"
@@ -22,10 +25,10 @@ from utils.compatibility_data import (
 # Thư viện Kerykeion
 try:
     from kerykeion import AstrologicalSubject, settings as kerykeion_settings
-    
+
     if kerykeion_settings:
         kerykeion_settings.GEONAMES_USERNAME = GEONAMES_USER
-        
+
     try:
         from kerykeion.charts.kerykeion_chart_svg import KerykeionChartSVG
     except ImportError:
@@ -33,7 +36,7 @@ try:
             from kerykeion.chart import KerykeionChartSVG
         except ImportError:
             KerykeionChartSVG = None
-    
+
     KERYKEION_AVAILABLE = True
 except Exception as e:
     logging.error(f"Kerykeion initialization failed: {e}")
@@ -44,9 +47,6 @@ class AstrologyService:
     def __init__(self) -> None:
         self._logger = logging.getLogger(__name__)
 
-    # -------------------------
-    # Public API
-    # -------------------------
     def build_natal_chart(
         self, person: BirthInfo, lat: Optional[float], lon: Optional[float], tz_name: Optional[str] = None
     ) -> NatalChart:
@@ -60,7 +60,7 @@ class AstrologyService:
         if KERYKEION_AVAILABLE and lat is not None and lon is not None:
             moon_sign, ascendant, planets, svg_chart = self._kerykeion_chart(person, time_str, lat, lon)
 
-        return NatalChart(
+        natal = NatalChart(
             name=person.name,
             sun_sign=sun_sign or "Unknown",
             moon_sign=moon_sign,
@@ -69,79 +69,64 @@ class AstrologyService:
             svg_chart=svg_chart,
         )
 
-    # -------------------------
-    # Kerykeion Integration (Fixed Search Path)
-    # -------------------------
+        if not natal.svg_chart:
+            natal.svg_chart = self._build_fallback_svg(natal, person.time_unknown)
+
+        return natal
+
     def _kerykeion_chart(
         self, person: BirthInfo, time_str: str, lat: float, lon: float
     ) -> tuple[Optional[str], Optional[str], list[PlanetPosition], Optional[str]]:
         try:
             date_obj = datetime.strptime(person.birth_date, "%Y-%m-%d")
             hour, minute = [int(x) for x in time_str.split(":")]
-            
-            # Khử dấu: "Đồng Minh Thiện" -> "DongMinhThien"
-            safe_name = "".join(c for c in person.name if c.isalnum()) or "User"
-            
+
+            raw_name = person.name or "User"
+            safe_name = "".join(c for c in raw_name if c.isalnum()) or "User"
+
             subject = AstrologicalSubject(
-                name=safe_name, 
-                year=date_obj.year, 
-                month=date_obj.month, 
+                name=safe_name,
+                year=date_obj.year,
+                month=date_obj.month,
                 day=date_obj.day,
-                hour=hour, 
-                minute=minute, 
-                city=person.birth_place or "Unknown", 
-                lat=lat, 
-                lng=lon
+                hour=hour,
+                minute=minute,
+                city=person.birth_place or "Unknown",
+                lat=lat,
+                lng=lon,
             )
 
-            # 1. Trích xuất dữ liệu hành tinh
-            planets_res = []
+            planets_res: list[PlanetPosition] = []
             moon_sign = None
             if hasattr(subject, "planets_list"):
                 for p in subject.planets_list:
-                    pos = float(p.abs_pos) if hasattr(p, 'abs_pos') else 0.0
+                    pos = float(p.abs_pos) if hasattr(p, "abs_pos") else 0.0
                     planets_res.append(PlanetPosition(name=p.name, sign=p.sign, degree=pos))
                     if p.name == "Moon":
                         moon_sign = p.sign
-            
+
             ascendant = subject.houses_list[0].sign if getattr(subject, "houses_list", []) else None
 
-            # 2. Tạo và đọc SVG (Logic tìm kiếm đa điểm)
             svg_data = None
             if KerykeionChartSVG:
                 try:
-                    # Tạo chart
-                    chart_instance = KerykeionChartSVG(subject, chart_type="Natal")
-                    chart_instance.makeSVG()
+                    with tempfile.TemporaryDirectory() as tmp_dir:
+                        chart_instance = KerykeionChartSVG(
+                            subject,
+                            chart_type="Natal",
+                            new_output_directory=tmp_dir,
+                        )
+                        chart_instance.makeSVG()
 
-                    # --- Search Logic ---
-                    search_dirs = [Path.cwd(), Path.home()]
-                    search_pattern = f"*{safe_name}*.svg"
-                    
-                    found_file = None
-                    
-                    for directory in search_dirs:
-                        self._logger.debug(f"🔍 Searching for SVG in: {directory} with pattern: {search_pattern}")
-                        try:
-                            files = list(directory.glob(search_pattern))
-                            if files:
-                                files.sort(key=os.path.getmtime, reverse=True)
-                                found_file = files[0]
-                                self._logger.info(f"✅ Found SVG file at: {found_file}")
-                                break
-                        except Exception as e:
-                            self._logger.warning(f"⚠️ Error searching in {directory}: {e}")
-
-                    if found_file:
-                        try:
-                            svg_data = found_file.read_text(encoding="utf-8")
-                            os.remove(found_file)
-                            self._logger.info(f"🧹 Cleaned up SVG file: {found_file.name}")
-                        except Exception as read_err:
-                            self._logger.error(f"❌ Failed to read/delete file: {read_err}")
-                    else:
-                        self._logger.error(f"❌ SVG Generated but NOT FOUND in: {[str(d) for d in search_dirs]}")
-
+                        svg_candidates = sorted(
+                            Path(tmp_dir).glob("*.svg"),
+                            key=lambda p: p.stat().st_mtime,
+                            reverse=True,
+                        )
+                        if svg_candidates:
+                            svg_data = svg_candidates[0].read_text(encoding="utf-8")
+                        else:
+                            self._logger.warning("Kerykeion không tạo file SVG trong thư mục tạm")
                 except Exception as e:
                     self._logger.error(f"SVG Process Error: {e}")
 
@@ -157,13 +142,10 @@ class AstrologyService:
             for sign, (start, end) in SUN_SIGN_RANGES.items():
                 if start <= (date_obj.month, date_obj.day) <= end:
                     return sign
-        except:
+        except Exception:
             pass
         return "Capricorn"
 
-    # -------------------------
-    # Compatibility Logic (Đã sửa lỗi thiếu trường)
-    # -------------------------
     def compatibility(self, a: NatalChart, b: NatalChart, gender_a: str, gender_b: str) -> CompatibilityDetails:
         element_score = self._element_score(a.sun_sign, b.sun_sign)
         trait_a = self._trait_text(a.sun_sign)
