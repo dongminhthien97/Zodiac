@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
-
 from pydantic import BaseModel, Field, field_validator
 
 Gender = Literal["male", "female", "other"]
@@ -54,17 +52,6 @@ class NatalChart(BaseModel):
     ascendant: Optional[str]
     planets: list[PlanetPosition]
     svg_chart: Optional[str]
-
-
-class NatalInsights(BaseModel):
-    summary: str
-    personality: str
-    emotional_style: str
-    love_style: str
-    career_style: str
-    strengths: list[str]
-    growth_edges: list[str]
-    advice: str
 
 
 class CompatibilityDetails(BaseModel):

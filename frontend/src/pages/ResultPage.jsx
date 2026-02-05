@@ -1,7 +1,6 @@
 import React from 'react'
 import ChartDisplay from '../components/ChartDisplay'
 import ResultCard from '../components/ResultCard'
-import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { useCompatibilityStore } from '../store/useCompatibilityStore'
 
@@ -17,15 +16,11 @@ const DETAIL_LABELS = {
   aspects: 'Góc chiếu nổi bật'
 }
 
-const INSIGHT_LABELS = {
-  summary: 'Tổng quan lá số',
-  personality: 'Tính cách',
-  emotional_style: 'Cảm xúc nội tâm',
-  love_style: 'Phong cách tình yêu',
-  career_style: 'Định hướng sự nghiệp',
-  strengths: 'Điểm mạnh nổi bật',
-  growth_edges: 'Điểm cần phát triển',
-  advice: 'Khuyến nghị cá nhân'
+const CHART_LABELS = {
+  name: 'Tên',
+  sun_sign: 'Mặt Trời',
+  moon_sign: 'Mặt Trăng',
+  ascendant: 'Cung mọc'
 }
 
 function formatGeneratedAt(value) {
@@ -57,17 +52,19 @@ function renderValue(value) {
   return <p>{value || 'Chưa có dữ liệu'}</p>
 }
 
-function PlanetsDisplay({ planets = [] }) {
-  if (!planets.length) return <p>Chưa có dữ liệu hành tinh chi tiết.</p>
+function ChartMetadata({ chart }) {
+  const chartEntries = Object.entries(chart).filter(([key]) => key !== 'planets' && key !== 'svg_chart')
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {planets.map((planet) => (
-        <Badge key={`${planet.name}-${planet.sign}-${planet.degree}`}>
-          {planet.name}: {planet.sign} ({planet.degree.toFixed(2)}°)
-        </Badge>
-      ))}
-    </div>
+    <ResultCard title="Dữ liệu lá số chi tiết">
+      <div className="space-y-2 text-sm text-white/80">
+        {chartEntries.map(([key, value]) => (
+          <div key={key}>
+            <span className="font-semibold text-white">{CHART_LABELS[key] || key}:</span> {String(value || 'Chưa có dữ liệu')}
+          </div>
+        ))}
+      </div>
+    </ResultCard>
   )
 }
 
@@ -79,8 +76,7 @@ export default function ResultPage() {
   if (!result) return null
 
   if (resultType === 'natal') {
-    const { person, generated_at, insights } = result
-    const insightEntries = Object.entries(insights || {}).filter(([, value]) => value !== null && value !== undefined)
+    const { person, generated_at } = result
 
     return (
       <div className="mx-auto max-w-6xl px-6 py-12">
@@ -95,8 +91,12 @@ export default function ResultPage() {
 
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
           <ChartDisplay title="Lá số của bạn" chart={person} />
+          <ChartMetadata chart={person} />
+        </div>
+
+        <div className="mt-10">
           <ResultCard title="Danh sách hành tinh (realtime từ API)">
-            <PlanetsDisplay planets={person.planets} />
+            {renderValue(person.planets)}
           </ResultCard>
         </div>
 
@@ -128,15 +128,8 @@ export default function ResultPage() {
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         <ChartDisplay title="Lá số người A" chart={person_a} />
         <ChartDisplay title="Lá số người B" chart={person_b} />
-      </div>
-
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
-        <ResultCard title="Hành tinh người A">
-          <PlanetsDisplay planets={person_a.planets} />
-        </ResultCard>
-        <ResultCard title="Hành tinh người B">
-          <PlanetsDisplay planets={person_b.planets} />
-        </ResultCard>
+        <ChartMetadata chart={person_a} />
+        <ChartMetadata chart={person_b} />
       </div>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
