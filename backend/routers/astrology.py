@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-
 from fastapi import APIRouter, HTTPException
 
 from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse
