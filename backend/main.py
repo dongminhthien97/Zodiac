@@ -1,6 +1,12 @@
-﻿from fastapi import FastAPI
+﻿import logging
+import os
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.astrology import router as astrology_router
+
+
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "DEBUG"))
 
 app = FastAPI(title="Zodiac Compatibility Checker", version="0.1.0")
 

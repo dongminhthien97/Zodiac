@@ -1,5 +1,6 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+import logging
 import os
 from typing import Optional, Tuple
 
@@ -11,6 +12,7 @@ class GeocodingService:
         self._geolocator = Nominatim(user_agent="zodiac-compatibility-checker")
         self._google_key = os.getenv("GOOGLE_GEOCODING_API_KEY")
         self._default_country = os.getenv("DEFAULT_COUNTRY", "Vietnam")
+        self._logger = logging.getLogger(__name__)
 
     def geocode(self, place: str) -> Tuple[Optional[float], Optional[float], Optional[str]]:
         place = place.strip()
@@ -19,12 +21,20 @@ class GeocodingService:
             lower_country = self._default_country.lower()
             if lower_country not in lower_place:
                 place = f"{place}, {self._default_country}"
+        self._logger.debug("Geocode input: %s", place)
         try:
             location = self._geolocator.geocode(place)
             if location:
+                self._logger.debug(
+                    "Geocode success: %s -> lat=%s lon=%s address=%s",
+                    place,
+                    location.latitude,
+                    location.longitude,
+                    location.address,
+                )
                 return location.latitude, location.longitude, location.address
         except Exception:
-            pass
+            self._logger.exception("Geocode Nominatim failed for %s", place)
 
         if self._google_key:
             return self._geocode_google(place)
@@ -41,8 +51,16 @@ class GeocodingService:
             if data.get("status") == "OK" and data.get("results"):
                 result = data["results"][0]
                 location = result["geometry"]["location"]
+                self._logger.debug(
+                    "Geocode Google success: %s -> lat=%s lon=%s address=%s",
+                    place,
+                    location["lat"],
+                    location["lng"],
+                    result.get("formatted_address"),
+                )
                 return location["lat"], location["lng"], result.get("formatted_address")
         except Exception:
+            self._logger.exception("Geocode Google failed for %s", place)
             return None, None, None
 
         return None, None, None
