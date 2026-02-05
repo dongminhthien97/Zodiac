@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import CompatibilityForm from '../components/CompatibilityForm'
 import SingleZodiacForm from '../components/SingleZodiacForm'
 import { Button } from '../components/ui/button'
