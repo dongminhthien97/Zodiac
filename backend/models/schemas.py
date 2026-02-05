@@ -1,6 +1,7 @@
-from typing import Optional
+from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
+
 
 
 class BirthInfo(BaseModel):
@@ -60,17 +61,6 @@ class NatalChart(BaseModel):
     svg_chart: Optional[str]
 
 
-class NatalInsights(BaseModel):
-    summary: str
-    personality: str
-    emotional_style: str
-    love_style: str
-    career_style: str
-    strengths: list[str]
-    growth_edges: list[str]
-    advice: str
-
-
 class CompatibilityDetails(BaseModel):
     score: int
     summary: str
@@ -95,11 +85,3 @@ class NatalResponse(BaseModel):
     generated_at: str
     person: NatalChart
     insights: NatalInsights
-
-
-# Ensure pydantic resolves all model references in every environment
-for _m in [
-    BirthInfo, CompatibilityRequest, NatalRequest, PlanetPosition, NatalChart,
-    NatalInsights, CompatibilityDetails, CompatibilityResponse, NatalResponse,
-]:
-    _m.model_rebuild()
