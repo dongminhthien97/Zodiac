@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import ChartDisplay from '../components/ChartDisplay'
 import ResultCard from '../components/ResultCard'
 import { Button } from '../components/ui/button'
