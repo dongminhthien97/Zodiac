@@ -1,4 +1,7 @@
-﻿from fastapi import APIRouter, HTTPException
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Body, HTTPException
+from pydantic import ValidationError
 
 from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse
 from services.astrology_service import AstrologyService
@@ -7,8 +10,14 @@ from supabase_client import get_supabase_client
 
 router = APIRouter(tags=["astrology"])
 
+
 @router.post("/compatibility", response_model=CompatibilityResponse)
-def compatibility(payload: CompatibilityRequest) -> CompatibilityResponse:
+def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
+    try:
+        payload = CompatibilityRequest.model_validate(raw_payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
     astrology = AstrologyService()
     geocoder = GeocodingService()
 
@@ -30,7 +39,8 @@ def compatibility(payload: CompatibilityRequest) -> CompatibilityResponse:
         payload.person_b.gender,
     )
 
-    response = CompatibilityResponse(person_a=chart_a, person_b=chart_b, details=details)
+    generated_at = datetime.now(timezone.utc).isoformat()
+    response = CompatibilityResponse(generated_at=generated_at, person_a=chart_a, person_b=chart_b, details=details)
 
     supabase = get_supabase_client()
     if supabase:
@@ -50,8 +60,14 @@ def compatibility(payload: CompatibilityRequest) -> CompatibilityResponse:
 
     return response
 
+
 @router.post("/natal", response_model=NatalResponse)
-def natal(payload: NatalRequest) -> NatalResponse:
+def natal(raw_payload: dict = Body(...)) -> NatalResponse:
+    try:
+        payload = NatalRequest.model_validate(raw_payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
     astrology = AstrologyService()
     geocoder = GeocodingService()
 
@@ -60,4 +76,5 @@ def natal(payload: NatalRequest) -> NatalResponse:
         raise HTTPException(status_code=400, detail="Không thể tìm được vị trí sinh")
 
     chart = astrology.build_natal_chart(payload.person, lat, lon)
-    return NatalResponse(person=chart)
+    insights = astrology.build_natal_insights(chart, payload.person.time_unknown)
+    return NatalResponse(generated_at=datetime.now(timezone.utc).isoformat(), person=chart, insights=insights)

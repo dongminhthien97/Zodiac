@@ -1,31 +1,26 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
-import os
 import logging
+import os
 import tempfile
-import shutil
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
+
+from models.schemas import BirthInfo, CompatibilityDetails, NatalChart, NatalInsights, PlanetPosition
+from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIGN_RANGES
 
 # 1. THIẾT LẬP CẤU HÌNH HỆ THỐNG
 GEONAMES_USER = "century.boy"
 os.environ["GEONAMES_USERNAME"] = GEONAMES_USER
 
-from models.schemas import BirthInfo, NatalChart, PlanetPosition, CompatibilityDetails
-from utils.compatibility_data import (
-    SUN_SIGN_RANGES,
-    SIGN_TRAITS,
-    ELEMENT_COMPATIBILITY,
-)
-
 # Thư viện Kerykeion
 try:
     from kerykeion import AstrologicalSubject, settings as kerykeion_settings
-    
+
     if kerykeion_settings:
         kerykeion_settings.GEONAMES_USERNAME = GEONAMES_USER
-        
+
     try:
         from kerykeion.charts.kerykeion_chart_svg import KerykeionChartSVG
     except ImportError:
@@ -33,7 +28,7 @@ try:
             from kerykeion.chart import KerykeionChartSVG
         except ImportError:
             KerykeionChartSVG = None
-    
+
     KERYKEION_AVAILABLE = True
 except Exception as e:
     logging.error(f"Kerykeion initialization failed: {e}")
@@ -44,9 +39,6 @@ class AstrologyService:
     def __init__(self) -> None:
         self._logger = logging.getLogger(__name__)
 
-    # -------------------------
-    # Public API
-    # -------------------------
     def build_natal_chart(
         self, person: BirthInfo, lat: Optional[float], lon: Optional[float], tz_name: Optional[str] = None
     ) -> NatalChart:
@@ -60,7 +52,7 @@ class AstrologyService:
         if KERYKEION_AVAILABLE and lat is not None and lon is not None:
             moon_sign, ascendant, planets, svg_chart = self._kerykeion_chart(person, time_str, lat, lon)
 
-        return NatalChart(
+        natal = NatalChart(
             name=person.name,
             sun_sign=sun_sign or "Unknown",
             moon_sign=moon_sign,
@@ -69,79 +61,64 @@ class AstrologyService:
             svg_chart=svg_chart,
         )
 
-    # -------------------------
-    # Kerykeion Integration (Fixed Search Path)
-    # -------------------------
+        if not natal.svg_chart:
+            natal.svg_chart = self._build_fallback_svg(natal, person.time_unknown)
+
+        return natal
+
     def _kerykeion_chart(
         self, person: BirthInfo, time_str: str, lat: float, lon: float
     ) -> tuple[Optional[str], Optional[str], list[PlanetPosition], Optional[str]]:
         try:
             date_obj = datetime.strptime(person.birth_date, "%Y-%m-%d")
             hour, minute = [int(x) for x in time_str.split(":")]
-            
-            # Khử dấu: "Đồng Minh Thiện" -> "DongMinhThien"
-            safe_name = "".join(c for c in person.name if c.isalnum()) or "User"
-            
+
+            raw_name = person.name or "User"
+            safe_name = "".join(c for c in raw_name if c.isalnum()) or "User"
+
             subject = AstrologicalSubject(
-                name=safe_name, 
-                year=date_obj.year, 
-                month=date_obj.month, 
+                name=safe_name,
+                year=date_obj.year,
+                month=date_obj.month,
                 day=date_obj.day,
-                hour=hour, 
-                minute=minute, 
-                city=person.birth_place or "Unknown", 
-                lat=lat, 
-                lng=lon
+                hour=hour,
+                minute=minute,
+                city=person.birth_place or "Unknown",
+                lat=lat,
+                lng=lon,
             )
 
-            # 1. Trích xuất dữ liệu hành tinh
-            planets_res = []
+            planets_res: list[PlanetPosition] = []
             moon_sign = None
             if hasattr(subject, "planets_list"):
                 for p in subject.planets_list:
-                    pos = float(p.abs_pos) if hasattr(p, 'abs_pos') else 0.0
+                    pos = float(p.abs_pos) if hasattr(p, "abs_pos") else 0.0
                     planets_res.append(PlanetPosition(name=p.name, sign=p.sign, degree=pos))
                     if p.name == "Moon":
                         moon_sign = p.sign
-            
+
             ascendant = subject.houses_list[0].sign if getattr(subject, "houses_list", []) else None
 
-            # 2. Tạo và đọc SVG (Logic tìm kiếm đa điểm)
             svg_data = None
             if KerykeionChartSVG:
                 try:
-                    # Tạo chart
-                    chart_instance = KerykeionChartSVG(subject, chart_type="Natal")
-                    chart_instance.makeSVG()
+                    with tempfile.TemporaryDirectory() as tmp_dir:
+                        chart_instance = KerykeionChartSVG(
+                            subject,
+                            chart_type="Natal",
+                            new_output_directory=tmp_dir,
+                        )
+                        chart_instance.makeSVG()
 
-                    # --- Search Logic ---
-                    search_dirs = [Path.cwd(), Path.home()]
-                    search_pattern = f"*{safe_name}*.svg"
-                    
-                    found_file = None
-                    
-                    for directory in search_dirs:
-                        self._logger.debug(f"🔍 Searching for SVG in: {directory} with pattern: {search_pattern}")
-                        try:
-                            files = list(directory.glob(search_pattern))
-                            if files:
-                                files.sort(key=os.path.getmtime, reverse=True)
-                                found_file = files[0]
-                                self._logger.info(f"✅ Found SVG file at: {found_file}")
-                                break
-                        except Exception as e:
-                            self._logger.warning(f"⚠️ Error searching in {directory}: {e}")
-
-                    if found_file:
-                        try:
-                            svg_data = found_file.read_text(encoding="utf-8")
-                            os.remove(found_file)
-                            self._logger.info(f"🧹 Cleaned up SVG file: {found_file.name}")
-                        except Exception as read_err:
-                            self._logger.error(f"❌ Failed to read/delete file: {read_err}")
-                    else:
-                        self._logger.error(f"❌ SVG Generated but NOT FOUND in: {[str(d) for d in search_dirs]}")
-
+                        svg_candidates = sorted(
+                            Path(tmp_dir).glob("*.svg"),
+                            key=lambda p: p.stat().st_mtime,
+                            reverse=True,
+                        )
+                        if svg_candidates:
+                            svg_data = svg_candidates[0].read_text(encoding="utf-8")
+                        else:
+                            self._logger.warning("Kerykeion không tạo file SVG trong thư mục tạm")
                 except Exception as e:
                     self._logger.error(f"SVG Process Error: {e}")
 
@@ -157,31 +134,248 @@ class AstrologyService:
             for sign, (start, end) in SUN_SIGN_RANGES.items():
                 if start <= (date_obj.month, date_obj.day) <= end:
                     return sign
-        except:
+        except Exception:
             pass
         return "Capricorn"
 
-    # -------------------------
-    # Compatibility Logic (Đã sửa lỗi thiếu trường)
-    # -------------------------
-    def compatibility(self, a: NatalChart, b: NatalChart, gender_a: str, gender_b: str) -> CompatibilityDetails:
-        element_score = self._element_score(a.sun_sign, b.sun_sign)
-        
-        # Cập nhật đầy đủ các trường theo Schema mới
-        return CompatibilityDetails(
-            score=element_score,
-            summary=f"Kết nối giữa {a.sun_sign} và {b.sun_sign} có nhiều tiềm năng.",
-            personality="Sự tương tác thú vị giữa các yếu tố bản lề.",
-            love_style="Chân thành và thấu hiểu.",
-            career="Cần dung hòa giữa tham vọng và sự ổn định.",       # <-- Thêm mới
-            relationships="Có sự gắn kết nhưng cần giao tiếp nhiều hơn.", # <-- Thêm mới
-            conflict_points="Khác biệt trong cách giải quyết vấn đề.",    # <-- Thêm mới
-            advice="Hãy kiên nhẫn hơn với những khác biệt nhỏ.",
-            recommended_activities=["Đi du lịch", "Cùng khám phá sở thích mới"],
-            aspects=["Yếu tố nguyên tố tương hợp"]
+
+    def build_natal_insights(self, chart: NatalChart, time_unknown: bool) -> NatalInsights:
+        sun_element = self._element_of_sign(chart.sun_sign)
+        moon_element = self._element_of_sign(chart.moon_sign or chart.sun_sign)
+        asc_sign = chart.ascendant or chart.sun_sign
+        asc_element = self._element_of_sign(asc_sign)
+
+        sun_trait = self._trait_of_sign(chart.sun_sign)
+        moon_trait = self._trait_of_sign(chart.moon_sign or chart.sun_sign)
+        asc_trait = self._trait_of_sign(asc_sign)
+
+        time_note = (
+            "Giờ sinh chưa rõ nên phần Cung mọc/cảm xúc được nội suy theo mốc 12:00, "
+            "độ chính xác ở mức tham khảo."
+            if time_unknown
+            else "Dữ liệu giờ sinh đầy đủ giúp phần cảm xúc và Cung mọc rõ hơn."
         )
 
+        strengths = [
+            f"Năng lượng Mặt Trời ({chart.sun_sign}) nổi bật: {sun_trait}",
+            f"Phong cách cảm xúc ({chart.moon_sign or chart.sun_sign}) thiên về: {moon_trait}",
+            f"Cách thể hiện ra ngoài ({asc_sign}) cho thấy: {asc_trait}",
+        ]
+
+        growth_edges = [
+            f"Cân bằng giữa nhu cầu hành động ({sun_element}) và nhu cầu cảm xúc ({moon_element}).",
+            f"Điều chỉnh nhịp giao tiếp để hài hòa với phong cách thể hiện ({asc_element}).",
+        ]
+
+        return NatalInsights(
+            summary=(
+                f"Tổng quan lá số: Mặt Trời {chart.sun_sign}, Mặt Trăng {chart.moon_sign or 'chưa xác định'}, "
+                f"Cung mọc {chart.ascendant or 'chưa xác định'}. {time_note}"
+            ),
+            personality=(
+                f"Tính cách cốt lõi chịu ảnh hưởng mạnh bởi {chart.sun_sign} ({sun_element}): {sun_trait}"
+            ),
+            emotional_style=(
+                f"Đời sống nội tâm nghiêng về {chart.moon_sign or chart.sun_sign} ({moon_element}): {moon_trait}"
+            ),
+            love_style=(
+                f"Trong tình yêu, bạn thể hiện qua năng lượng {sun_element}/{moon_element}; "
+                "cần đối thoại rõ nhu cầu cảm xúc và ranh giới cá nhân."
+            ),
+            career_style=(
+                f"Phong cách sự nghiệp phù hợp với môi trường cho phép phát huy {sun_trait.lower()} "
+                f"và ưu thế triển khai theo nhịp {asc_element.lower()}."
+            ),
+            strengths=strengths,
+            growth_edges=growth_edges,
+            advice=(
+                "Hãy dùng điểm mạnh Mặt Trời để dẫn dắt mục tiêu, dùng Mặt Trăng để quản trị cảm xúc, "
+                "và dùng Cung mọc để điều chỉnh cách thể hiện trong các mối quan hệ."
+            ),
+        )
+
+    def compatibility(self, a: NatalChart, b: NatalChart, gender_a: str, gender_b: str) -> CompatibilityDetails:
+        element_score = self._element_score(a.sun_sign, b.sun_sign)
+        cross_aspects = self._cross_chart_aspects(a.planets, b.planets)
+
+        aspect_bonus = sum(item["weight"] for item in cross_aspects[:6])
+        final_score = max(40, min(99, element_score + aspect_bonus))
+
+        dominant_a = self._dominant_element(a.planets, a.sun_sign)
+        dominant_b = self._dominant_element(b.planets, b.sun_sign)
+        relationship_tone = self._relationship_tone(final_score)
+
+        summary = (
+            f"Tương hợp thực tế dựa trên lá số: {a.sun_sign}/{b.sun_sign}, "
+            f"điểm nền nguyên tố {element_score} và tương tác góc chiếu +{aspect_bonus}."
+        )
+
+        personality = (
+            f"Người A thiên {dominant_a}, người B thiên {dominant_b}. "
+            f"Mức phối hợp hiện tại thuộc nhóm {relationship_tone}."
+        )
+
+        love_style = self._love_style_from_aspects(cross_aspects, dominant_a, dominant_b)
+        career = self._career_style_from_elements(dominant_a, dominant_b)
+        relationships = self._relationships_note(cross_aspects)
+        conflict_points = self._conflict_points(cross_aspects, dominant_a, dominant_b)
+        advice = self._advice_from_data(cross_aspects, final_score)
+
+        return CompatibilityDetails(
+            score=final_score,
+            summary=summary,
+            personality=personality,
+            love_style=love_style,
+            career=career,
+            relationships=relationships,
+            conflict_points=conflict_points,
+            advice=advice,
+            recommended_activities=self._recommended_activities(dominant_a, dominant_b),
+            aspects=[item["label"] for item in cross_aspects[:8]]
+            or ["Chưa đủ dữ liệu hành tinh để tính góc chiếu chi tiết"],
+        )
+
+    def _element_of_sign(self, sign: str) -> str:
+        return SIGN_TRAITS.get(sign, "Unknown|").split("|")[0] or "Unknown"
+
+    def _trait_of_sign(self, sign: str) -> str:
+        parts = SIGN_TRAITS.get(sign, "Unknown|khó xác định").split("|", 1)
+        return parts[1] if len(parts) > 1 else "khó xác định"
+
     def _element_score(self, sign_a: str, sign_b: str) -> int:
-        element_a = SIGN_TRAITS.get(sign_a, "").split("|")[0]
-        element_b = SIGN_TRAITS.get(sign_b, "").split("|")[0]
+        element_a = self._element_of_sign(sign_a)
+        element_b = self._element_of_sign(sign_b)
         return ELEMENT_COMPATIBILITY.get((element_a, element_b), 60)
+
+    def _dominant_element(self, planets: list[PlanetPosition], fallback_sign: str) -> str:
+        if not planets:
+            return self._element_of_sign(fallback_sign)
+
+        counters: dict[str, int] = {}
+        for p in planets:
+            e = self._element_of_sign(p.sign)
+            counters[e] = counters.get(e, 0) + 1
+        return max(counters, key=counters.get)
+
+    def _cross_chart_aspects(self, a_planets: list[PlanetPosition], b_planets: list[PlanetPosition]) -> list[dict]:
+        if not a_planets or not b_planets:
+            return []
+
+        aspect_defs = [
+            ("Conjunction", 0, 8, 4),
+            ("Sextile", 60, 4, 2),
+            ("Square", 90, 6, -2),
+            ("Trine", 120, 6, 3),
+            ("Opposition", 180, 8, -3),
+        ]
+
+        results = []
+        for pa in a_planets:
+            for pb in b_planets:
+                delta = abs(pa.degree - pb.degree)
+                if delta > 180:
+                    delta = 360 - delta
+
+                for name, target, orb, weight in aspect_defs:
+                    if abs(delta - target) <= orb:
+                        results.append(
+                            {
+                                "label": f"{pa.name} {name} {pb.name} (orb {abs(delta-target):.1f}°)",
+                                "weight": weight,
+                                "challenging": weight < 0,
+                            }
+                        )
+                        break
+
+        results.sort(key=lambda x: abs(x["weight"]), reverse=True)
+        return results
+
+    def _relationship_tone(self, score: int) -> str:
+        if score >= 85:
+            return "rất hòa hợp"
+        if score >= 72:
+            return "khá hòa hợp"
+        if score >= 60:
+            return "cần điều chỉnh"
+        return "nhiều khác biệt"
+
+    def _love_style_from_aspects(self, aspects: list[dict], dominant_a: str, dominant_b: str) -> str:
+        supportive = sum(1 for a in aspects[:8] if not a["challenging"])
+        challenging = sum(1 for a in aspects[:8] if a["challenging"])
+        return (
+            f"Trong tình cảm, năng lượng chính là {dominant_a}/{dominant_b}. "
+            f"Góc thuận: {supportive}, góc thử thách: {challenging}."
+        )
+
+    def _career_style_from_elements(self, element_a: str, element_b: str) -> str:
+        return (
+            f"Trong công việc, tổ hợp {element_a} - {element_b} phù hợp khi phân vai rõ ràng, "
+            "định nghĩa KPI và cadence trao đổi cố định."
+        )
+
+    def _relationships_note(self, aspects: list[dict]) -> str:
+        if not aspects:
+            return "Quan hệ được đánh giá từ dữ liệu nền (chưa đủ giờ sinh/planet detail để mở rộng)."
+
+        top = ", ".join(a["label"] for a in aspects[:3])
+        return f"Các tương tác nổi bật hiện tại: {top}."
+
+    def _conflict_points(self, aspects: list[dict], element_a: str, element_b: str) -> str:
+        hard = [a["label"] for a in aspects if a["challenging"]][:3]
+        if hard:
+            return f"Điểm dễ mâu thuẫn đến từ: {', '.join(hard)}."
+        return f"Mâu thuẫn chủ yếu đến từ khác biệt nhịp quyết định giữa {element_a} và {element_b}."
+
+    def _advice_from_data(self, aspects: list[dict], score: int) -> str:
+        if score >= 80:
+            return "Giữ nhịp giao tiếp đều; tận dụng các góc thuận để cùng triển khai mục tiêu dài hạn."
+        if any(a["challenging"] for a in aspects[:6]):
+            return "Ưu tiên nguyên tắc tranh luận không công kích cá nhân và chốt quyết định theo từng bước nhỏ."
+        return "Tăng thời gian chia sẻ kỳ vọng và rà soát cảm xúc định kỳ mỗi tuần."
+
+    def _recommended_activities(self, element_a: str, element_b: str) -> list[str]:
+        options = {
+            "Fire": "Hoạt động thể chất ngoài trời",
+            "Earth": "Lập kế hoạch tài chính hoặc dự án cá nhân",
+            "Air": "Workshop sáng tạo hoặc thảo luận sách/phim",
+            "Water": "Hoạt động nghệ thuật hoặc mindfulness",
+            "Unknown": "Đi dạo và trò chuyện định kỳ",
+        }
+        return [
+            options.get(element_a, options["Unknown"]),
+            options.get(element_b, options["Unknown"]),
+            "Du lịch ngắn ngày để làm mới kết nối",
+        ]
+
+    def _build_fallback_svg(self, chart: NatalChart, time_unknown: bool) -> str:
+        note = "Giờ sinh chưa rõ: dùng mốc 12:00 để ước lượng." if time_unknown else "Dữ liệu sinh đầy đủ."
+        planets = ", ".join(f"{p.name}:{p.sign}" for p in chart.planets[:8]) or "Không có dữ liệu hành tinh chi tiết"
+
+        lines = [
+            f"Mặt Trời: {chart.sun_sign}",
+            f"Mặt Trăng: {chart.moon_sign or 'Chưa xác định'}",
+            f"Cung mọc: {chart.ascendant or 'Chưa xác định'}",
+            note,
+            planets,
+        ]
+
+        y = 30
+        text_nodes = []
+        for line in lines:
+            safe_line = (
+                line.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+            text_nodes.append(
+                f'<text x="20" y="{y}" fill="#E5E7EB" font-size="14" font-family="Arial">{safe_line}</text>'
+            )
+            y += 26
+
+        return (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="720" height="220" viewBox="0 0 720 220">'
+            '<rect width="720" height="220" rx="16" fill="#111827"/>'
+            '<text x="20" y="20" fill="#F472B6" font-size="16" font-family="Arial">Tóm tắt lá số (fallback)</text>'
+            + "".join(text_nodes)
+            + "</svg>"
+        )
