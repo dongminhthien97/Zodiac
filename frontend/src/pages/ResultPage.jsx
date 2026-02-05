@@ -99,6 +99,14 @@ export default function ResultPage() {
             {renderValue(person.planets)}
           </ResultCard>
         </div>
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-2">
+          {insightEntries.map(([key, value]) => (
+            <ResultCard key={key} title={INSIGHT_LABELS[key] || key}>
+              {renderValue(value)}
+            </ResultCard>
+          ))}
+        </div>
       </div>
     )
   }

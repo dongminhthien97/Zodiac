@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional, Literal
 from pydantic import BaseModel, Field, field_validator
 
 Gender = Literal["male", "female", "other"]
@@ -78,3 +77,4 @@ class CompatibilityResponse(BaseModel):
 class NatalResponse(BaseModel):
     generated_at: str
     person: NatalChart
+    insights: NatalInsights
