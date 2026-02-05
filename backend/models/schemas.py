@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 Gender = Literal["male", "female", "other"]
 
+
 class BirthInfo(BaseModel):
     name: Optional[str] = Field(default=None, max_length=80)
     gender: Gender = Field(default="other")
@@ -29,20 +30,21 @@ class BirthInfo(BaseModel):
             raise ValueError("birth_time must be in HH:MM format")
         return v
 
+
 class CompatibilityRequest(BaseModel):
     person_a: BirthInfo
     person_b: BirthInfo
 
-class NatalRequest(BaseModel):
-    person: BirthInfo
 
 class NatalRequest(BaseModel):
     person: BirthInfo
+
 
 class PlanetPosition(BaseModel):
     name: str
     sign: str
     degree: float
+
 
 class NatalChart(BaseModel):
     name: Optional[str]
@@ -51,6 +53,7 @@ class NatalChart(BaseModel):
     ascendant: Optional[str]
     planets: list[PlanetPosition]
     svg_chart: Optional[str]
+
 
 class CompatibilityDetails(BaseModel):
     score: int
@@ -64,13 +67,14 @@ class CompatibilityDetails(BaseModel):
     recommended_activities: list[str]
     aspects: list[str]
 
+
 class CompatibilityResponse(BaseModel):
+    generated_at: str
     person_a: NatalChart
     person_b: NatalChart
     details: CompatibilityDetails
 
-class NatalResponse(BaseModel):
-    person: NatalChart
 
 class NatalResponse(BaseModel):
+    generated_at: str
     person: NatalChart

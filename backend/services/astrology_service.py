@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+﻿﻿from __future__ import annotations
 
 import os
 import logging
@@ -17,6 +17,7 @@ from utils.compatibility_data import (
     SUN_SIGN_RANGES,
     SIGN_TRAITS,
     ELEMENT_COMPATIBILITY,
+    GENDER_TONE,
 )
 
 # Thư viện Kerykeion
@@ -166,20 +167,79 @@ class AstrologyService:
     # -------------------------
     def compatibility(self, a: NatalChart, b: NatalChart, gender_a: str, gender_b: str) -> CompatibilityDetails:
         element_score = self._element_score(a.sun_sign, b.sun_sign)
-        
-        # Cập nhật đầy đủ các trường theo Schema mới
+        trait_a = self._trait_text(a.sun_sign)
+        trait_b = self._trait_text(b.sun_sign)
+        element_a = self._element_of_sign(a.sun_sign)
+        element_b = self._element_of_sign(b.sun_sign)
+        tone = GENDER_TONE.get((gender_a, gender_b), "cân bằng")
+
+        strengths = self._strength_phrase(element_score)
+        challenge = self._challenge_phrase(element_a, element_b)
+
         return CompatibilityDetails(
             score=element_score,
-            summary=f"Kết nối giữa {a.sun_sign} và {b.sun_sign} có nhiều tiềm năng.",
-            personality="Sự tương tác thú vị giữa các yếu tố bản lề.",
-            love_style="Chân thành và thấu hiểu.",
-            career="Cần dung hòa giữa tham vọng và sự ổn định.",       # <-- Thêm mới
-            relationships="Có sự gắn kết nhưng cần giao tiếp nhiều hơn.", # <-- Thêm mới
-            conflict_points="Khác biệt trong cách giải quyết vấn đề.",    # <-- Thêm mới
-            advice="Hãy kiên nhẫn hơn với những khác biệt nhỏ.",
-            recommended_activities=["Đi du lịch", "Cùng khám phá sở thích mới"],
-            aspects=["Yếu tố nguyên tố tương hợp"]
+            summary=(
+                f"{a.sun_sign} ({element_a}) và {b.sun_sign} ({element_b}) có mức hòa hợp {element_score}%. "
+                f"Năng lượng tổng thể thiên về {tone}."
+            ),
+            personality=f"Người A {trait_a} Trong khi đó người B {trait_b}",
+            love_style=f"Khi yêu, cặp đôi này phát huy {strengths.lower()} nhưng cần chú ý {challenge.lower()}.",
+            career=(
+                f"Trong công việc, {element_a} kết hợp với {element_b} phù hợp cho vai trò phân chia rõ ràng: "
+                "một người dẫn dắt, một người duy trì nhịp độ."
+            ),
+            relationships=(
+                f"Mối quan hệ có sắc thái {tone}, phù hợp khi cả hai thống nhất nguyên tắc giao tiếp "
+                "và phản hồi định kỳ."
+            ),
+            conflict_points=challenge,
+            advice=(
+                "Ưu tiên đối thoại thẳng thắn, đặt lịch trao đổi cố định mỗi tuần và luôn tôn trọng khác biệt cảm xúc."
+            ),
+            recommended_activities=self._recommended_activities(element_a, element_b),
+            aspects=[
+                f"Sun {a.sun_sign} - Sun {b.sun_sign}",
+                f"Element pairing: {element_a}/{element_b}",
+                f"Relationship tone: {tone}",
+            ],
         )
+
+
+    def _element_of_sign(self, sign: str) -> str:
+        return SIGN_TRAITS.get(sign, "Unknown|").split("|")[0] or "Unknown"
+
+    def _trait_text(self, sign: str) -> str:
+        parts = SIGN_TRAITS.get(sign, "Unknown|khó xác định").split("|", 1)
+        return parts[1] if len(parts) > 1 else "khó xác định"
+
+    def _strength_phrase(self, score: int) -> str:
+        if score >= 82:
+            return "độ đồng điệu rất cao"
+        if score >= 72:
+            return "độ tương tác tốt"
+        return "tiềm năng phát triển nếu cùng nỗ lực"
+
+    def _challenge_phrase(self, element_a: str, element_b: str) -> str:
+        if element_a == element_b:
+            return "xu hướng phản chiếu cảm xúc quá giống nhau"
+        if {element_a, element_b} == {"Fire", "Water"}:
+            return "nhịp cảm xúc nóng - lạnh thay đổi nhanh"
+        if {element_a, element_b} == {"Air", "Earth"}:
+            return "khác biệt giữa tư duy linh hoạt và nhu cầu ổn định"
+        return "khác biệt về tốc độ ra quyết định"
+
+    def _recommended_activities(self, element_a: str, element_b: str) -> list[str]:
+        options = {
+            "Fire": "Hoạt động thể chất ngoài trời",
+            "Earth": "Lập kế hoạch tài chính hoặc dự án cá nhân",
+            "Air": "Workshop sáng tạo hoặc thảo luận sách/phim",
+            "Water": "Hoạt động nghệ thuật hoặc mindfulness",
+        }
+        return [
+            options.get(element_a, "Đi dạo và trò chuyện"),
+            options.get(element_b, "Đi dạo và trò chuyện"),
+            "Du lịch ngắn ngày để làm mới kết nối",
+        ]
 
     def _element_score(self, sign_a: str, sign_b: str) -> int:
         element_a = SIGN_TRAITS.get(sign_a, "").split("|")[0]

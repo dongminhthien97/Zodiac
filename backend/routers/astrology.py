@@ -1,4 +1,6 @@
-﻿from fastapi import APIRouter, HTTPException
+﻿﻿from datetime import datetime, timezone
+
+from fastapi import APIRouter, HTTPException
 
 from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse
 from services.astrology_service import AstrologyService
@@ -30,7 +32,8 @@ def compatibility(payload: CompatibilityRequest) -> CompatibilityResponse:
         payload.person_b.gender,
     )
 
-    response = CompatibilityResponse(person_a=chart_a, person_b=chart_b, details=details)
+    generated_at = datetime.now(timezone.utc).isoformat()
+    response = CompatibilityResponse(generated_at=generated_at, person_a=chart_a, person_b=chart_b, details=details)
 
     supabase = get_supabase_client()
     if supabase:
@@ -60,4 +63,4 @@ def natal(payload: NatalRequest) -> NatalResponse:
         raise HTTPException(status_code=400, detail="Không thể tìm được vị trí sinh")
 
     chart = astrology.build_natal_chart(payload.person, lat, lon)
-    return NatalResponse(person=chart)
+    return NatalResponse(generated_at=datetime.now(timezone.utc).isoformat(), person=chart)

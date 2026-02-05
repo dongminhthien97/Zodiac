@@ -1,4 +1,4 @@
-﻿SUN_SIGN_RANGES = {
+﻿﻿SUN_SIGN_RANGES = {
     "Aries": ((3, 21), (4, 19)),
     "Taurus": ((4, 20), (5, 20)),
     "Gemini": ((5, 21), (6, 20)),
