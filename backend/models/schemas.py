@@ -2,16 +2,23 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 
-Gender = Literal["male", "female", "other"]
 
 
 class BirthInfo(BaseModel):
     name: Optional[str] = Field(default=None, max_length=80)
-    gender: Gender = Field(default="other")
+    gender: str = Field(default="other")
     birth_date: str = Field(..., description="YYYY-MM-DD")
     birth_time: Optional[str] = Field(default=None, description="HH:MM (24h)")
     time_unknown: bool = Field(default=False)
     birth_place: str = Field(..., description="City, Country")
+
+
+    @field_validator("gender")
+    @classmethod
+    def validate_gender(cls, v: str) -> str:
+        if v not in {"male", "female", "other"}:
+            raise ValueError('gender must be one of: male, female, other')
+        return v
 
     @field_validator("birth_date")
     @classmethod
