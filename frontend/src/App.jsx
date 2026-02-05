@@ -1,4 +1,4 @@
-﻿import Home from './pages/Home'
+import Home from './pages/Home'
 import ResultPage from './pages/ResultPage'
 import { useCompatibilityStore } from './store/useCompatibilityStore'
 
