@@ -5,26 +5,62 @@ input:
   moon_sign: "{moon_sign}"
   rising_sign: "{rising_sign}"
 
+## Tổng quan năng lượng
+- Trục vận hành chính: mức đồng pha giữa ý chí (Sun), phản xạ cảm xúc (Moon) và cơ chế thích nghi xã hội (Rising).
+- Tốc độ xử lý: {element} quyết định nhịp phản ứng nền khi gặp thay đổi, mâu thuẫn hoặc cơ hội mới.
+- Điểm hội tụ: khi ba dấu hiệu cùng hướng, hệ thống ra quyết định nhanh nhưng vùng mù khó bị phát hiện.
+- Điểm phân kỳ: khi ba dấu hiệu khác hướng, độ linh hoạt tăng nhưng chi phí thương lượng nội tâm cũng tăng.
+
+## Tính cách cốt lõi
+- Bản ngã chủ động (Sun): xác lập mục tiêu tự định nghĩa trong ngữ cảnh cạnh tranh và hợp tác.
+- Lớp cảm xúc (Moon): chọn cơ chế bảo toàn an toàn tâm lý khi bị chất vấn hoặc mất kiểm soát.
+- Giao diện bên ngoài (Rising): điều chỉnh phong cách xuất hiện để tối ưu khả năng được tiếp nhận.
+- Mẫu ổn định: tính cách thực thi theo mô hình “mục tiêu – phản xạ – biểu hiện”, không nên phân tích từng lớp tách rời.
+
+## Tình yêu & kết nối
+- Tiêu chí chọn đối tác: tương thích ở cách xử lý bất đồng, không chỉ tương thích ở cảm xúc ban đầu.
+- Cơ chế gắn bó: chất lượng tin cậy được đánh giá qua hành vi lặp lại (đúng hẹn, giữ cam kết, minh bạch).
+- Điểm xung đột phổ biến: nhu cầu thân mật của Moon có thể va với chiến lược hình ảnh của Rising.
+- Điều kiện bền vững: mối quan hệ cần quy ước rõ về ranh giới, trách nhiệm và cách sửa lỗi sau va chạm.
+
+## Sở thích phù hợp
+- Nhóm sở thích nên chọn theo chức năng: nạp năng lượng, mở rộng kỹ năng, tăng chiều sâu tự nhận thức.
+- Hoạt động tối ưu: loại hình vừa có phản hồi thực nghiệm vừa có không gian điều chỉnh phong cách cá nhân.
+- Dấu hiệu phù hợp: sau hoạt động vẫn còn năng lượng chủ động thay vì chỉ đạt cảm giác phân tán tạm thời.
+- Dấu hiệu lệch: tiêu tốn nhiều thời gian nhưng không tạo tiến bộ đo lường được ở năng lực lõi.
+
+## Định hướng công việc
+- Trục nghề nghiệp: mô hình giá trị tạo ra phải khớp giữa động cơ Sun và ngưỡng chịu tải Moon.
+- Môi trường phù hợp: nơi Rising không phải diễn vai liên tục để tồn tại trong chính trị nội bộ.
+- Cách chọn vai trò: ưu tiên vị trí có quyền quyết tương ứng với mức trách nhiệm được giao.
+- Cảnh báo hệ thống: thành tựu ngắn hạn không bù được hao mòn nếu cấu trúc công việc trái nhịp tâm lý.
+
+## Định hướng cuộc sống
+- Mục tiêu dài hạn nên đặt theo chu kỳ: định hướng chiến lược, thực thi tài nguyên, tái cấu trúc nội tâm.
+- Đơn vị đo tiến bộ: chất lượng quyết định dưới áp lực, không chỉ số lượng thành tích hiển thị.
+- Trật tự ưu tiên: giữ nhất quán giữa giá trị sống, mô hình quan hệ và thiết kế lao động thường ngày.
+- Ngưỡng điều chỉnh: khi phải hy sinh một lớp cốt lõi quá lâu, hệ thống cần đổi cấu hình vận hành.
+
 ## Điểm mạnh nổi bật
-- Khả năng kiến trúc quyết định: ghép tín hiệu từ {sun_sign} (ý chí), {moon_sign} (phản xạ), {rising_sign} (biểu đạt) thành một bản đồ ưu tiên có thứ tự xử lý.
-- Năng lực điều phối quan hệ: đọc nhanh trạng thái tương tác và chọn nhịp trao đổi phù hợp với nền {element} để giữ hợp tác mà không làm mờ mục tiêu.
-- Tư duy hiệu chỉnh chiến lược: cập nhật hướng đi khi dữ liệu mới xuất hiện nhưng vẫn bảo toàn tiêu chuẩn cốt lõi đã đặt từ đầu.
-- Độ nhạy mô thức lặp: phát hiện sớm chu kỳ hành vi gây thất thoát năng lượng trước khi chuyển thành xung đột hệ thống.
+- Tạo khung quyết định đa biến, giúp giảm sai số khi bối cảnh có nhiều lợi ích cạnh tranh.
+- Nhận diện tín hiệu lệch pha giữa cảm xúc nội tại và hành vi xã hội trước khi khủng hoảng bùng phát.
+- Thiết kế quy trình hợp tác rõ trách nhiệm, làm tăng độ tin cậy trong làm việc liên cá nhân.
+- Duy trì khả năng cập nhật chiến lược mà không phá vỡ toàn bộ cấu trúc mục tiêu ban đầu.
 
 ## Thách thức thường gặp
-- Ma sát nội tại tăng mạnh khi ba lớp Sun–Moon–Rising ưu tiên khác nhau, khiến thời gian chốt phương án kéo dài.
-- Sai lệch tự đánh giá xuất hiện nếu người dùng lấy phản hồi xã hội làm thước đo duy nhất thay cho dữ liệu hiệu suất thực.
-- Phân tán chú ý xảy ra lúc cố tối ưu đồng thời quá nhiều biến số mà thiếu ngưỡng dừng phân tích rõ ràng.
-- Tích lũy căng thẳng âm thầm khi xung lực cảm xúc bị nén liên tục để duy trì hình ảnh vận hành ổn định.
+- Quá tải nội bộ do phải cân đồng thời nhiều chuẩn đánh giá mâu thuẫn nhau.
+- Trì hoãn quyết định vì ưu tiên tránh sai hơn là tối ưu thời điểm hành động.
+- Tự tiêu hao khi dùng cơ chế thích nghi xã hội để che tín hiệu bất ổn cảm xúc kéo dài.
+- Mất ổn định quỹ đạo khi thay đổi mục tiêu theo phản hồi tức thời từ môi trường.
 
 ## Gợi ý phát triển
-- Thiết lập bảng trọng số 3 tầng (mục tiêu, cảm xúc, biểu hiện) và khóa tỷ lệ ưu tiên cố định cho từng loại quyết định.
-- Vận hành quy trình phản biện hai bước: ghi giả định ban đầu rồi buộc kiểm định bằng dữ kiện trái chiều trước khi hành động.
-- Xây bộ chỉ báo lệch pha cá nhân gồm 5 tín hiệu sinh hoạt để nhận diện sớm thời điểm cần đổi cấu hình làm việc.
-- Áp dụng chu kỳ retrospective 14 ngày nhằm tách lỗi do năng lực khỏi lỗi do thiết kế môi trường.
+- Thiết lập ma trận chốt quyết định gồm tiêu chí bắt buộc, tiêu chí linh hoạt và ngưỡng dừng phân tích.
+- Tách nhật ký phản ứng thành ba cột Sun/Moon/Rising để xác định điểm xung đột lặp.
+- Chuẩn hóa bộ câu hỏi tiền cam kết nhằm kiểm tra tương thích vai trò trước khi nhận trách nhiệm mới.
+- Áp dụng vòng rà soát theo quý để loại bỏ mục tiêu không còn phù hợp với cấu hình hiện tại.
 
 ## Khuyến nghị thực hành
-- Mở phiên planning sáng thứ Hai, chọn đúng 3 việc trọng tâm và gắn rõ chủ thể dẫn dắt cho từng việc: Sun, Moon hoặc Rising.
-- Dùng mẫu nhật ký cuối ngày 5 dòng: bối cảnh, quyết định, phản ứng cảm xúc, hành vi thể hiện, sai số giữa ba lớp.
-- Trước mỗi cuộc họp quan trọng, chạy checklist 90 giây để xác định ranh giới nhượng bộ và tín hiệu cần leo thang.
-- Đặt lịch chặn cố định mỗi tháng 1 buổi để loại một cam kết tiêu hao cao nhưng giá trị hệ thống thấp.
+- Mỗi tuần thực hiện 1 phiên 30 phút: chọn một quyết định gần nhất và gắn nhãn động cơ chính xác cho từng lớp.
+- Trước cuộc trao đổi quan trọng, viết trước 3 câu: mục tiêu cần đạt, giới hạn không nhượng bộ, phương án thoát.
+- Cuối ngày ghi lại 1 tình huống áp lực và chấm điểm mức lệch giữa cảm xúc thật với cách thể hiện bên ngoài.
+- Mỗi tháng loại bỏ 1 cam kết tiêu hao cao nhưng giá trị thấp để giảm nhiễu hệ thống vận hành.
