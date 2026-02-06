@@ -8,8 +8,14 @@ from supabase_client import get_supabase_client
 
 router = APIRouter(tags=["astrology"])
 
+
 @router.post("/compatibility", response_model=CompatibilityResponse)
-def compatibility(payload: CompatibilityRequest) -> CompatibilityResponse:
+def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
+    try:
+        payload = CompatibilityRequest.model_validate(raw_payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
     astrology = AstrologyService()
     geocoder = GeocodingService()
 
@@ -52,8 +58,14 @@ def compatibility(payload: CompatibilityRequest) -> CompatibilityResponse:
 
     return response
 
+
 @router.post("/natal", response_model=NatalResponse)
-def natal(payload: NatalRequest) -> NatalResponse:
+def natal(raw_payload: dict = Body(...)) -> NatalResponse:
+    try:
+        payload = NatalRequest.model_validate(raw_payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
     astrology = AstrologyService()
     geocoder = GeocodingService()
 
