@@ -1,0 +1,108 @@
+{
+    "meta": {
+        "version": "v1.0.0",
+        "content_hash": "b2a8d1c4e5f6g7h8",
+        "locale": "vi",
+        "generated_at": "2026-02-06T15:00:00Z"
+    },
+    "context": {
+        "zodiac": "Libra",
+        "element": "Air",
+        "birth_time_known": false,
+        "interpretation_mode": "sign_based",
+        "house_system": null
+    },
+    "sections": [
+        {
+            "key": "big_picture",
+            "items": [
+                {
+                    "id": "bp_air_balance",
+                    "layer": "psychological",
+                    "sentences": [
+                        "Bản đồ sao phản ánh sự dư thừa nguyên tố Khí tạo khả năng xử lý thông tin khách quan vượt trội nhưng gây khó kết nối cảm xúc.",
+                        "Cấu trúc năng lượng tập trung vào trục Thiên Bình Bạch Dương cho thấy bài học cốt lõi là cân bằng cá nhân và hòa hợp xã hội."
+                    ]
+                },
+                {
+                    "id": "bp_directive",
+                    "layer": "practical",
+                    "sentences": [
+                        "Chỉ dẫn trung hạn của bạn là học cách ra quyết định dựa trên các giá trị cốt lõi thay vì duy trì hòa bình giả tạo bề ngoài.",
+                        "Thực hành kỷ luật giới hạn luồng thông tin phản hồi từ người khác giúp bạn bảo vệ sự tĩnh lặng để nghe tiếng nói nội tâm rõ ràng hơn."
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "core_identity",
+            "items": [
+                {
+                    "id": "sun_libra_core",
+                    "planet": "Sun",
+                    "sign": "Libra",
+                    "layer": "psychological",
+                    "sentences": [
+                        "Động lực chính của bạn là tìm kiếm sự đối xứng thông qua việc tinh lọc mối quan hệ và môi trường xung quanh trong mọi khía cạnh sống.",
+                        "Sức mạnh cốt lõi nằm ở khả năng trung hòa các thái cực đối lập mà không làm mất đi tính toàn vẹn của bất kỳ bên nào."
+                    ]
+                },
+                {
+                    "id": "sun_libra_shadow",
+                    "planet": "Sun",
+                    "sign": "Libra",
+                    "layer": "practical",
+                    "sentences": [
+                        "Bóng tối của cấu trúc này bộc lộ qua sự do dự kéo dài làm tiêu hao năng lượng và giảm khả năng nắm bắt cơ hội quan trọng.",
+                        "Khuynh hướng ưu tiên hình thức và lịch thiệp đôi khi ngăn cản đối diện với sự thật trần trụi nhưng cần thiết cho phát triển thực sự."
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "love_drive",
+            "items": [
+                {
+                    "id": "venus_libra_attach",
+                    "planet": "Venus",
+                    "sign": "Libra",
+                    "layer": "psychological",
+                    "sentences": [
+                        "Phong cách gắn kết của bạn được xây dựng trên nền tảng tôn trọng trí tuệ và trao đổi công bằng về tình cảm lẫn nguồn lực.",
+                        "Bạn có xu hướng lý tưởng hóa đối tác như tấm gương phản chiếu phẩm chất tốt đẹp nhất mà bạn đang nỗ lực hoàn thiện ở bản thân."
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "collective",
+            "items": []
+        },
+        {
+            "key": "soul_lessons",
+            "items": []
+        },
+        {
+            "key": "conclusion",
+            "items": [
+                {
+                    "id": "conc_libra",
+                    "layer": "psychological",
+                    "sentences": [
+                        "Bạn là người kiến tạo sự hòa hợp và cân bằng trong mọi không gian sống mà bạn xuất hiện và tham gia đóng góp năng lượng.",
+                        "Bạn sở hữu tâm hồn triết gia duy mỹ biết tìm vẻ đẹp trong logic và đối xứng của vũ trụ và thế giới quan xung quanh.",
+                        "Công lý là kim chỉ nam tối thượng định hướng mọi quyết định quan trọng mà bạn đưa ra trong các mối quan hệ và sự nghiệp.",
+                        "Sống là quá trình tinh lọc liên tục các kết nối để loại bỏ những gì không cộng hưởng và giữ lại bản chất thuần khiết nhất."
+                    ]
+                },
+                {
+                    "id": "conc_rule",
+                    "layer": "practical",
+                    "sentences": [
+                        "Hãy biến sự do dự thành hành động cân nhắc có thời hạn rõ ràng để không bao giờ bỏ lỡ nhịp điệu của định mệnh đang gọi tên bạn."
+                    ]
+                }
+            ]
+        }
+    ]
+}

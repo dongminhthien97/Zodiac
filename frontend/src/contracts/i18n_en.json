@@ -1,0 +1,38 @@
+{
+    "sections": {
+        "big_picture": "The Big Picture",
+        "core_identity": "Core Identity",
+        "love_drive": "Love & Drive",
+        "collective": "Collective Influence",
+        "soul_lessons": "Soul Lessons",
+        "conclusion": "Life Directive"
+    },
+    "layers": {
+        "psychological": "Psychological Layer",
+        "spiritual": "Spiritual Evolution",
+        "practical": "Practical Application"
+    },
+    "planets": {
+        "Sun": "Sun",
+        "Moon": "Moon",
+        "Mercury": "Mercury",
+        "Venus": "Venus",
+        "Mars": "Mars",
+        "Jupiter": "Jupiter",
+        "Saturn": "Saturn",
+        "Uranus": "Uranus",
+        "Neptune": "Neptune",
+        "Pluto": "Pluto",
+        "NorthNode": "North Node",
+        "SouthNode": "South Node",
+        "Chiron": "Chiron"
+    },
+    "ui": {
+        "house": "House",
+        "sign": "Sign",
+        "switch_system": "Switch House System",
+        "duplicate_skipped": "[Debug] Duplicate content filtered",
+        "system_whole": "Whole Sign",
+        "system_placidus": "Placidus"
+    }
+}
