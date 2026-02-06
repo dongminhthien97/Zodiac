@@ -23,6 +23,13 @@ const CHART_LABELS = {
   ascendant: 'Cung mọc'
 }
 
+
+const INSIGHT_LABELS = {
+  personality: 'Tính cách cốt lõi',
+  strengths: 'Điểm mạnh nổi bật',
+  growth_areas: 'Gợi ý phát triển'
+}
+
 function formatGeneratedAt(value) {
   if (!value) return 'Chưa có dữ liệu thời gian'
 
@@ -76,7 +83,8 @@ export default function ResultPage() {
   if (!result) return null
 
   if (resultType === 'natal') {
-    const { person, generated_at } = result
+    const { person, generated_at, insights } = result
+    const insightEntries = Object.entries(insights || {}).filter(([, value]) => value !== null && value !== undefined)
 
     return (
       <div className="mx-auto max-w-6xl px-6 py-12">
