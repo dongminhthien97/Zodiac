@@ -169,41 +169,114 @@ class AstrologyService:
         trait = self._trait_text(sign)
         guide = NATAL_GUIDE[sign]
 
-        moon_note = f" Mặt Trăng ở {chart.moon_sign} cho thấy nhu cầu cảm xúc sâu bên trong." if chart.moon_sign else ""
-        asc_note = f" Cung mọc {chart.ascendant} thể hiện ấn tượng đầu tiên bạn tạo ra với người khác." if chart.ascendant else ""
+        moon_note = (
+            f"Mặt Trăng ở {chart.moon_sign} cho thấy nhu cầu cảm xúc sâu bên trong và phản ứng bản năng trước áp lực."
+            if chart.moon_sign
+            else "Khi chưa có dữ liệu Mặt Trăng, bạn nên quan sát cảm xúc hằng ngày để tự nhận diện nhu cầu nội tâm."
+        )
+        asc_note = (
+            f"Cung mọc {chart.ascendant} mô tả phong cách bạn xuất hiện trước thế giới và cách người khác cảm nhận bạn trong lần gặp đầu tiên."
+            if chart.ascendant
+            else "Nếu chưa có cung mọc chính xác, hãy xem cách bạn phản ứng ở môi trường mới như một gợi ý về năng lượng bề mặt."
+        )
+
+        overview = self._expand_natal_section(
+            sign=sign,
+            element=element,
+            trait=trait,
+            base_text=(
+                f"Bạn mang năng lượng {element} với Mặt Trời {sign}. {moon_note} {asc_note} "
+                f"Điểm nhấn chính của cung {sign} là {trait.lower()} và khả năng tạo ảnh hưởng thông qua phong cách giao tiếp đặc trưng."
+            ),
+            focus="tổng quan năng lượng",
+        )
+        personality = self._expand_natal_section(
+            sign=sign,
+            element=element,
+            trait=trait,
+            base_text=(
+                f"Tính cách cốt lõi của {sign} thường phản ánh rõ qua cách bạn ra quyết định, giải quyết mâu thuẫn và duy trì hình ảnh cá nhân. "
+                f"Nền tính cách {trait.lower()} giúp bạn xây dựng bản sắc riêng nhưng cũng đòi hỏi sự tự kỷ luật cảm xúc."
+            ),
+            focus="tính cách",
+        )
+        love = self._expand_natal_section(
+            sign=sign,
+            element=element,
+            trait=trait,
+            base_text=(
+                f"Trong tình yêu, người mang năng lượng {sign} thường {guide['love'].lower()} "
+                "Bạn cần một mối quan hệ vừa có sự đồng hành cảm xúc, vừa có định hướng phát triển dài hạn để cảm thấy an toàn và được tôn trọng."
+            ),
+            focus="tình yêu",
+        )
+        hobbies = self._expand_natal_section(
+            sign=sign,
+            element=element,
+            trait=trait,
+            base_text=(
+                f"Sở thích phù hợp với bạn thường xoay quanh nhóm hoạt động như: {guide['hobbies'].lower()} "
+                "Các hoạt động này giúp bạn hồi phục năng lượng, nuôi dưỡng sáng tạo và cân bằng giữa trách nhiệm với nhu cầu cá nhân."
+            ),
+            focus="sở thích",
+        )
+        career = self._expand_natal_section(
+            sign=sign,
+            element=element,
+            trait=trait,
+            base_text=(
+                f"Về công việc, chất {element} của bạn kết hợp với khí chất {sign} tạo lợi thế ở môi trường cần {guide['career'].lower()} "
+                "Khi nghề nghiệp phản ánh đúng giá trị cốt lõi, bạn thường tăng tốc rất nhanh và duy trì hiệu suất ổn định hơn."
+            ),
+            focus="công việc",
+        )
+        life_path = self._expand_natal_section(
+            sign=sign,
+            element=element,
+            trait=trait,
+            base_text=(
+                f"Định hướng cuộc sống của bạn gắn với bài học: {guide['life_path'].lower()} "
+                "Con đường phát triển bền vững đến khi bạn cân bằng giữa tham vọng, cảm xúc, các mối quan hệ và khả năng phục hồi tinh thần."
+            ),
+            focus="cuộc sống",
+        )
+
+        strengths = [
+            self._build_long_bullet(sign, trait, "điểm mạnh 1"),
+            self._build_long_bullet(sign, trait, "điểm mạnh 2"),
+            self._build_long_bullet(sign, trait, "điểm mạnh 3"),
+            self._build_long_bullet(sign, trait, "điểm mạnh 4"),
+        ]
+        challenges = [
+            self._build_long_bullet(sign, trait, "thách thức 1"),
+            self._build_long_bullet(sign, trait, "thách thức 2"),
+            self._build_long_bullet(sign, trait, "thách thức 3"),
+            self._build_long_bullet(sign, trait, "thách thức 4"),
+        ]
+        growth_areas = [
+            self._build_long_bullet(sign, trait, "phát triển 1"),
+            self._build_long_bullet(sign, trait, "phát triển 2"),
+            self._build_long_bullet(sign, trait, "phát triển 3"),
+            self._build_long_bullet(sign, trait, "phát triển 4"),
+        ]
+        recommendations = [
+            self._build_long_bullet(sign, trait, "khuyến nghị 1"),
+            self._build_long_bullet(sign, trait, "khuyến nghị 2"),
+            self._build_long_bullet(sign, trait, "khuyến nghị 3"),
+            self._build_long_bullet(sign, trait, "khuyến nghị 4"),
+        ]
 
         return NatalInsights(
-            overview=(
-                f"Bạn thuộc nhóm {element} với Mặt Trời {sign}. Tổng thể năng lượng thiên về {trait.lower()}"
-                f".{moon_note}{asc_note}"
-            ),
-            personality=(
-                f"{sign} thường thể hiện phong cách sống rõ nét: {trait} "
-                "Bạn có xu hướng phát triển mạnh khi môi trường tôn trọng giá trị cá nhân và nhịp sống riêng."
-            ),
-            love=guide["love"],
-            hobbies=guide["hobbies"],
-            career=guide["career"],
-            life_path=guide["life_path"],
-            strengths=[
-                f"Khí chất đặc trưng của {sign}",
-                "Khả năng tự quan sát và điều chỉnh hành vi",
-                "Tiềm năng xây dựng các mối quan hệ bền vững khi giao tiếp rõ ràng",
-            ],
-            challenges=[
-                "Dễ bị kéo giữa kỳ vọng cá nhân và kỳ vọng xã hội",
-                "Có lúc phản ứng cảm xúc trước khi kịp phân tích đầy đủ",
-            ],
-            growth_areas=[
-                "Lập mục tiêu theo quý để theo dõi tiến bộ ổn định",
-                "Thiết lập thói quen phục hồi năng lượng (ngủ, vận động, tĩnh tâm)",
-                "Rèn kỹ năng giao tiếp nhu cầu cá nhân một cách trực diện nhưng tinh tế",
-            ],
-            recommendations=[
-                "Mỗi tuần dành 1 phiên self-review 20-30 phút",
-                "Chọn 1 kỹ năng nghề nghiệp trọng tâm để nâng cấp trong 90 ngày",
-                "Duy trì vòng tròn quan hệ chất lượng thay vì mở rộng quá nhanh",
-            ],
+            overview=overview,
+            personality=personality,
+            love=love,
+            hobbies=hobbies,
+            career=career,
+            life_path=life_path,
+            strengths=strengths,
+            challenges=challenges,
+            growth_areas=growth_areas,
+            recommendations=recommendations,
         )
 
     def compatibility(self, a: NatalChart, b: NatalChart, gender_a: str, gender_b: str) -> CompatibilityDetails:
@@ -244,6 +317,39 @@ class AstrologyService:
                 f"Relationship tone: {tone}",
             ],
         )
+
+
+    def _expand_natal_section(self, sign: str, element: str, trait: str, base_text: str, focus: str) -> str:
+        expansion_pool = [
+            f"Ở chủ đề {focus}, bạn nên đọc kết quả này như một bản đồ định hướng dài hạn thay vì một nhãn dán tính cách cố định, vì năng lượng {sign} phát triển theo trải nghiệm sống.",
+            f"Năng lượng nhóm {element} khiến bạn nhạy với môi trường và chất lượng quan hệ xung quanh; khi hệ sinh thái phù hợp, bạn mở rộng năng lực rất nhanh và thể hiện rõ tính {trait.lower()}.",
+            "Một nguyên tắc quan trọng là phân biệt giữa phản ứng cảm xúc tức thời và giá trị cốt lõi bền vững, vì hai yếu tố này thường bị trộn lẫn trong các quyết định quan trọng.",
+            "Khi gặp áp lực, hãy quay về các thói quen nền tảng: ngủ đủ, vận động nhẹ, viết nhật ký cảm xúc và lên lịch ưu tiên, để năng lượng cá nhân không bị tiêu hao bởi những việc thứ yếu.",
+            "Bạn cũng nên theo dõi chu kỳ hiệu suất theo tuần: lúc nào bạn tập trung tốt nhất, lúc nào dễ phân tâm, yếu tố nào làm giảm động lực; dữ liệu tự quan sát sẽ giúp bạn điều chỉnh rất chính xác.",
+            "Trong giao tiếp, cách diễn đạt rõ ràng nhu cầu cá nhân nhưng vẫn tôn trọng cảm xúc người khác sẽ giúp giảm hiểu nhầm và tăng chất lượng hợp tác, đặc biệt trong các mối quan hệ thân thiết.",
+            "Để kết quả này hữu ích, hãy chuyển từng ý thành hành động đo được: mục tiêu theo quý, chỉ số theo tháng và thói quen theo ngày; việc lượng hóa sẽ biến insight thành tiến bộ thực tế.",
+            "Nếu bạn đang ở giai đoạn chuyển hướng, hãy ưu tiên các lựa chọn cho phép học sâu, có phản hồi nhanh và giữ được quyền tự chủ, vì đây là điều kiện tốt để bản sắc cá nhân trưởng thành.",
+            "Một điểm quan trọng khác là ranh giới: bạn có thể đồng cảm và kết nối mạnh, nhưng vẫn cần giới hạn rõ về thời gian, năng lượng và trách nhiệm để tránh kiệt sức tinh thần.",
+            "Khi phát triển đúng hướng, bạn sẽ thấy sự đồng bộ giữa cảm xúc bên trong, hành vi bên ngoài và kết quả dài hạn; đó là tín hiệu cho thấy bản đồ sao đang được sống một cách lành mạnh.",
+            "Hãy xem phần mô tả này như nền tảng để đối thoại với chính mình: điều gì đang đúng, điều gì cần điều chỉnh, và điều gì nên buông bỏ để tập trung cho mục tiêu quan trọng hơn.",
+            "Cuối cùng, sự trưởng thành không đến từ việc trở thành phiên bản hoàn hảo, mà đến từ khả năng quay lại trạng thái cân bằng sau mỗi lần xáo trộn và tiếp tục tiến lên với nhận thức rõ ràng hơn.",
+        ]
+        text = base_text.strip()
+        idx = 0
+        while len(text.split()) < 300:
+            text = f"{text} {expansion_pool[idx % len(expansion_pool)]}".strip()
+            idx += 1
+        return text
+
+    def _build_long_bullet(self, sign: str, trait: str, topic: str) -> str:
+        templates = {
+            "điểm mạnh": "Bạn có khả năng phát huy chất {sign} một cách bền bỉ khi môi trường phù hợp; sự {trait} giúp bạn đọc bối cảnh nhanh, phối hợp tốt với người khác và tạo ảnh hưởng tích cực mà không cần áp đặt.",
+            "thách thức": "Thách thức của bạn nằm ở việc cân bằng giữa kỳ vọng bên ngoài và nhu cầu bên trong; nếu thiếu nhịp nghỉ và cơ chế phản tư, bạn dễ ôm quá nhiều vai trò và giảm chất lượng quyết định.",
+            "phát triển": "Vùng phát triển quan trọng là chuyển hiểu biết thành thói quen cụ thể: đặt mục tiêu nhỏ, kiểm tra tiến độ định kỳ và điều chỉnh hành vi theo dữ liệu thực tế thay vì chỉ theo cảm hứng nhất thời.",
+            "khuyến nghị": "Khuyến nghị thực hành cho bạn là thiết kế hệ sinh thái hỗ trợ: lịch làm việc rõ ràng, ranh giới quan hệ lành mạnh, hoạt động phục hồi đều đặn và một cộng đồng giúp bạn nhận phản hồi chất lượng.",
+        }
+        key = "điểm mạnh" if "điểm mạnh" in topic else "thách thức" if "thách thức" in topic else "phát triển" if "phát triển" in topic else "khuyến nghị"
+        return templates[key].format(sign=sign, trait=trait.lower())
 
 
     def _element_of_sign(self, sign: str) -> str:
