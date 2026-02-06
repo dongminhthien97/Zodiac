@@ -2,7 +2,7 @@
 export default {
   content: [
     './index.html',
-    './src/**/*.{js,jsx}'
+    './src/**/*.{js,jsx,ts,tsx}'
   ],
   theme: {
     extend: {
@@ -36,10 +36,32 @@ export default {
       },
       backgroundImage: {
         'hero-glow': 'radial-gradient(circle at top, rgba(107,124,255,0.35), transparent 60%)',
-        'paper-texture': 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0))'
+        'paper-texture': 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0))',
+        'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))'
       },
       boxShadow: {
-        soft: '0 20px 60px rgba(11, 11, 20, 0.4)'
+        soft: '0 20px 60px rgba(11, 11, 20, 0.4)',
+        glow: '0 0 15px rgba(230, 179, 90, 0.3)',
+        'glow-nebula': '0 0 15px rgba(107, 124, 255, 0.3)'
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.5s ease-out forwards',
+        'slide-up': 'slideUp 0.6s ease-out forwards',
+        'float': 'float 6s ease-in-out infinite'
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' }
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' }
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' }
+        }
       }
     }
   },

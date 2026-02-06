@@ -8,54 +8,74 @@
     --font-size-web: 16px;
     --font-size-mobile: 15px;
     --line-height-body: 1.6;
-    
-    /* Semantic Colors for Layers (WCAG AA Compliant on dark bg) */
-    --color-psychological: #e6b35a; /* Gold 500 */
-    --color-spiritual: #8f9bff;    /* Nebula 400 */
-    --color-practical: #9fe3c8;    /* Mint 500 */
   }
 
   html {
     font-family: 'Be Vietnam Pro', system-ui, sans-serif;
     scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  
+
   body {
-    @apply bg-ink-900 text-white min-h-screen selection:bg-pink-500/30;
+    @apply bg-ink-900 text-white min-h-screen selection:bg-pink-500/30 overflow-x-hidden;
     font-size: var(--font-size-web);
     line-height: var(--line-height-body);
+    background-image:
+      radial-gradient(circle at 15% 50%, rgba(107, 124, 255, 0.08), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(230, 179, 90, 0.05), transparent 25%);
   }
 
   @media (max-width: 640px) {
     body {
-        font-size: var(--font-size-mobile);
+      font-size: var(--font-size-mobile);
     }
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'Literata', serif;
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-soft;
+  }
+
+  .glass-input {
+    @apply bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:border-gold-400/50 focus:ring-1 focus:ring-gold-400/50 backdrop-blur-sm transition-all duration-300;
   }
 }
 
 @layer utilities {
   .text-shadow {
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-  
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  }
+
   .content-text {
     max-width: 68ch;
   }
 
   /* Layer specific card styles */
   .psychological-card {
-    @apply border-gold-500/20 hover:border-gold-500/40;
+    @apply border-gold-500/20 hover:border-gold-500/40 bg-gradient-to-br from-gold-500/5 to-transparent;
   }
-  
+
   .spiritual-card {
-    @apply border-nebula-500/20 hover:border-nebula-500/40;
+    @apply border-nebula-500/20 hover:border-nebula-500/40 bg-gradient-to-br from-nebula-500/5 to-transparent;
   }
-  
+
   .practical-card {
-    @apply border-mint-500/20 hover:border-mint-500/40;
+    @apply border-mint-500/20 hover:border-mint-500/40 bg-gradient-to-br from-mint-500/5 to-transparent;
   }
 }
