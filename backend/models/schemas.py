@@ -84,16 +84,16 @@ class CompatibilityResponse(BaseModel):
 
 
 class NatalInsights(BaseModel):
-    overview: str
-    personality: str
-    love: str
-    hobbies: str
-    career: str
-    life_path: str
-    strengths: list[str]
-    challenges: list[str]
-    growth_areas: list[str]
-    recommendations: list[str]
+    overview: str = "Tổng quan bản đồ sao của bạn đang được cập nhật chi tiết."
+    personality: str = "Mặt Trời thể hiện bản ngã cốt lõi và phong cách thể hiện cá nhân."
+    love: str = "Thông tin tình yêu đang được cập nhật từ dữ liệu cung hoàng đạo."
+    hobbies: str = "Sở thích phù hợp đang được tổng hợp từ năng lượng cung của bạn."
+    career: str = "Định hướng nghề nghiệp sẽ được gợi ý theo thế mạnh bản đồ sao."
+    life_path: str = "Lộ trình phát triển cuộc sống đang được đề xuất."
+    strengths: list[str] = Field(default_factory=list)
+    challenges: list[str] = Field(default_factory=list)
+    growth_areas: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
 
 
 class NatalResponse(BaseModel):
