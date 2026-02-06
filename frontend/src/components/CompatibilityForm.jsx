@@ -5,6 +5,10 @@ import { Input } from './ui/input'
 import { Select } from './ui/select'
 import { fetchCompatibility } from '../services/api'
 import { useCompatibilityStore } from '../store/useCompatibilityStore'
+import { buildBirthPlace, COUNTRY_CITY_OPTIONS, DEFAULT_COUNTRY, getDefaultCity } from '../data/locations'
+
+const defaultCountry = DEFAULT_COUNTRY
+const defaultCity = getDefaultCity(defaultCountry)
 
 const defaultPerson = {
   name: '',
@@ -12,10 +16,33 @@ const defaultPerson = {
   birth_date: '',
   birth_time: '',
   time_unknown: false,
-  birth_place: 'Vietnam'
+  country: defaultCountry,
+  city: defaultCity,
+  birth_place: buildBirthPlace(defaultCountry, defaultCity)
 }
 
 function PersonForm({ title, person, onChange }) {
+  const countries = Object.keys(COUNTRY_CITY_OPTIONS)
+  const cityOptions = COUNTRY_CITY_OPTIONS[person.country] || []
+
+  const updateCountry = (country) => {
+    const city = getDefaultCity(country)
+    onChange({
+      ...person,
+      country,
+      city,
+      birth_place: buildBirthPlace(country, city)
+    })
+  }
+
+  const updateCity = (city) => {
+    onChange({
+      ...person,
+      city,
+      birth_place: buildBirthPlace(person.country, city)
+    })
+  }
+
   return (
     <Card className="bg-white/3">
       <CardHeader>
@@ -42,7 +69,7 @@ function PersonForm({ title, person, onChange }) {
               <option value="other">Khác</option>
             </Select>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="text-xs uppercase tracking-wide text-white/60">Ngày sinh</label>
               <Input
@@ -69,18 +96,39 @@ function PersonForm({ title, person, onChange }) {
               </label>
             </div>
           </div>
-          <div>
-            <label className="text-xs uppercase tracking-wide text-white/60">Nơi sinh</label>
-            <Input
-              value={person.birth_place}
-              onChange={(e) => onChange({ ...person, birth_place: e.target.value })}
-              placeholder="Thành phố, Vietnam"
-            />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-xs uppercase tracking-wide text-white/60">Quốc gia</label>
+              <Select value={person.country} onChange={(e) => updateCountry(e.target.value)}>
+                {countries.map((country) => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-wide text-white/60">Thành phố</label>
+              <Select value={person.city} onChange={(e) => updateCity(e.target.value)}>
+                {cityOptions.map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </Select>
+            </div>
           </div>
         </div>
       </CardContent>
     </Card>
   )
+}
+
+function normalizePerson(person) {
+  return {
+    name: person.name,
+    gender: person.gender,
+    birth_date: person.birth_date,
+    birth_time: person.birth_time,
+    time_unknown: person.time_unknown,
+    birth_place: person.birth_place
+  }
 }
 
 export default function CompatibilityForm() {
@@ -98,8 +146,8 @@ export default function CompatibilityForm() {
 
     try {
       const payload = {
-        person_a: personA,
-        person_b: personB
+        person_a: normalizePerson(personA),
+        person_b: normalizePerson(personB)
       }
       const data = await fetchCompatibility(payload)
       setResult('compatibility', data)
