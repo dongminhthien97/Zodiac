@@ -1,0 +1,227 @@
+{
+    "meta": {
+        "version": "v2",
+        "locale": "vi",
+        "chartType": "with_birth_time",
+        "zodiac": {
+            "sun": "Libra",
+            "moon": "Libra",
+            "rising": "Libra",
+            "element": "Air"
+        }
+    },
+    "sections": [
+        {
+            "id": "energy_overview",
+            "title_i18n": "Tổng Quan Năng Lượng",
+            "summary": "Cấu trúc năng lượng của bạn tập trung mạnh vào yếu tố Khí, tạo nên một tâm thức phân tích sắc bén và khả năng giao tiếp xuất sắc.",
+            "insights": [
+                {
+                    "type": "description",
+                    "content": "Ba vị trí Thiên Bình tạo thành một tam giác hài hòa trong bản đồ sao của bạn, nhấn mạnh tầm quan trọng của sự cân bằng trong mọi khía cạnh cuộc sống."
+                },
+                {
+                    "type": "principle",
+                    "content": "Nguyên tắc cốt lõi của bạn là tìm kiếm sự công bằng không chỉ trong các mối quan hệ mà còn trong cách bạn tư duy và đưa ra quyết định.",
+                    "emphasis": "high"
+                },
+                {
+                    "type": "action",
+                    "content": "Hãy thiết lập ranh giới rõ ràng để bảo vệ năng lượng cá nhân, tránh tình trạng kiệt sức do cố gắng làm hài lòng mọi người xung quanh."
+                }
+            ]
+        },
+        {
+            "id": "core_personality",
+            "title_i18n": "Tính Cách Cốt Lõi",
+            "summary": "Bạn sở hữu khả năng nhìn nhận vấn đề từ nhiều góc độ khác nhau, điều này giúp bạn trở thành người hòa giải tài ba.",
+            "insights": [
+                {
+                    "type": "description",
+                    "content": "Tính thẩm mỹ cao và sự nhạy cảm với vẻ đẹp khiến bạn luôn tìm kiếm sự hài hòa trong môi trường sống và làm việc."
+                },
+                {
+                    "type": "warning",
+                    "content": "Xu hướng trì hoãn quyết định vì muốn cân nhắc mọi khả năng có thể khiến bạn bỏ lỡ các cơ hội quan trọng trong cuộc sống.",
+                    "emphasis": "medium"
+                },
+                {
+                    "type": "action",
+                    "content": "Thực hành đặt thời hạn rõ ràng cho các quyết định, bắt đầu với những lựa chọn nhỏ hàng ngày để xây dựng tính quyết đoán."
+                }
+            ]
+        },
+        {
+            "id": "love_connection",
+            "title_i18n": "Tình Yêu & Kết Nối",
+            "summary": "Trong các mối quan hệ, bạn tìm kiếm một đối tác có thể cùng chia sẻ tầm nhìn về một cuộc sống cân bằng và có ý nghĩa.",
+            "insights": [
+                {
+                    "type": "description",
+                    "content": "Bạn thể hiện tình cảm thông qua những cử chỉ tinh tế và sự quan tâm chu đáo, thường ưa thích giao tiếp bằng lời nói hơn là hành động rõ ràng."
+                },
+                {
+                    "type": "principle",
+                    "content": "Sự tôn trọng và công bằng trong quan hệ là điều kiện tiên quyết để bạn có thể cảm thấy an toàn và gắn kết sâu sắc.",
+                    "emphasis": "high"
+                },
+                {
+                    "type": "warning",
+                    "content": "Khuynh hướng lý tưởng hóa đối tác có thể dẫn đến thất vọng khi họ không đáp ứng được kỳ vọng hoàn hảo của bạn.",
+                    "emphasis": "medium"
+                },
+                {
+                    "type": "action",
+                    "content": "Học cách chấp nhận những khuyết điểm nhỏ trong mối quan hệ và tập trung vào việc xây dựng sự kết nối thực chất thay vì hình ảnh hoàn hảo."
+                }
+            ]
+        },
+        {
+            "id": "hobbies",
+            "title_i18n": "Sở Thích & Đam Mê",
+            "summary": "Các hoạt động mang tính sáng tạo, giao lưu xã hội và thẩm mỹ là những lĩnh vực bạn tìm thấy niềm vui và ý nghĩa.",
+            "insights": [
+                {
+                    "type": "description",
+                    "content": "Bạn có xu hướng bị thu hút bởi nghệ thuật, âm nhạc, thiết kế và mọi thứ liên quan đến vẻ đẹp hài hòa."
+                },
+                {
+                    "type": "action",
+                    "content": "Tham gia các câu lạc bộ sách, nhóm thảo luận hoặc các hoạt động văn hóa để nuôi dưỡng khía cạnh trí tuệ và xã hội của bạn."
+                }
+            ]
+        },
+        {
+            "id": "career_direction",
+            "title_i18n": "Định Hướng Sự Nghiệp",
+            "summary": "Môi trường làm việc lý tưởng của bạn là nơi bạn có thể sử dụng kỹ năng giao tiếp, khả năng hòa giải và tư duy phân tích.",
+            "insights": [
+                {
+                    "type": "description",
+                    "content": "Các lĩnh vực như luật pháp, tư vấn, nhân sự, thiết kế, hoặc quan hệ công chúng rất phù hợp với tài năng tự nhiên của bạn."
+                },
+                {
+                    "type": "principle",
+                    "content": "Bạn làm việc hiệu quả nhất trong các vai trò đòi hỏi sự hợp tác và khả năng xây dựng cầu nối giữa các bên liên quan.",
+                    "emphasis": "medium"
+                },
+                {
+                    "type": "warning",
+                    "content": "Môi trường cạnh tranh gay gắt hoặc thiếu sự hợp tác có thể làm bạn cảm thấy kiệt sức và mất động lực nhanh chóng.",
+                    "emphasis": "low"
+                },
+                {
+                    "type": "action",
+                    "content": "Tìm kiếm các vai trò lãnh đạo mang tính hợp tác thay vì kiểu lãnh đạo độc đoán để phát huy tối đa thế mạnh của bản thân."
+                }
+            ]
+        },
+        {
+            "id": "life_direction",
+            "title_i18n": "Định Hướng Cuộc Sống",
+            "summary": "Con đường phát triển của bạn hướng tới việc tìm thấy sự cân bằng giữa nhu cầu cá nhân và trách nhiệm với cộng đồng.",
+            "insights": [
+                {
+                    "type": "description",
+                    "content": "Bạn được kêu gọi xây dựng một cuộc sống dựa trên các giá trị về công bằng, hài hòa và sự kết nối có ý nghĩa."
+                },
+                {
+                    "type": "principle",
+                    "content": "Sống trọn vẹn có nghĩa là học cách đưa ra quyết định phù hợp với bản thân mà không cần sự phê duyệt từ người khác.",
+                    "emphasis": "high"
+                },
+                {
+                    "type": "action",
+                    "content": "Dành thời gian mỗi tuần để tự suy ngẫm và kiểm tra xem các quyết định của bạn có phản ánh đúng giá trị cốt lõi hay không."
+                }
+            ]
+        },
+        {
+            "id": "strengths",
+            "title_i18n": "Điểm Mạnh Nổi Bật",
+            "summary": "Khả năng nhìn nhận đa chiều và tài năng giao tiếp là những công cụ mạnh mẽ giúp bạn điều hướng cuộc sống.",
+            "insights": [
+                {
+                    "type": "description",
+                    "content": "Bạn có khả năng tự nhiên trong việc làm dịu căng thẳng, tạo sự đồng thuận và xây dựng mối quan hệ bền vững."
+                },
+                {
+                    "type": "description",
+                    "content": "Tư duy logic kết hợp với sự nhạy cảm cảm xúc giúp bạn hiểu rõ cả khía cạnh lý trí và tình cảm của con người."
+                },
+                {
+                    "type": "action",
+                    "content": "Phát triển kỹ năng giao tiếp qua các khóa học về thương lượng hoặc hòa giải để nâng cao năng lực tự nhiên của mình."
+                }
+            ]
+        },
+        {
+            "id": "challenges",
+            "title_i18n": "Thách Thức Cần Vượt Qua",
+            "summary": "Xu hướng trì hoãn và khó khăn trong việc đối mặt với xung đột là những rào cản cần được giải quyết.",
+            "insights": [
+                {
+                    "type": "warning",
+                    "content": "Sự do dự kéo dài có thể khiến bạn mắc kẹt trong các tình huống không phù hợp chỉ vì sợ tạo ra bất hòa.",
+                    "emphasis": "high"
+                },
+                {
+                    "type": "warning",
+                    "content": "Xu hướng ưu tiên hòa bình bề ngoài hơn là sự thật có thể dẫn đến sự tích tụ bức xúc nội tâm lâu dài.",
+                    "emphasis": "medium"
+                },
+                {
+                    "type": "action",
+                    "content": "Thực hành bày tỏ ý kiến thật sự của mình trong các tình huống an toàn trước khi áp dụng vào các mối quan hệ quan trọng."
+                }
+            ]
+        },
+        {
+            "id": "growth_suggestions",
+            "title_i18n": "Gợi Ý Phát Triển",
+            "summary": "Tập trung vào việc xây dựng tính quyết đoán và học cách đối diện với xung đột một cách xây dựng.",
+            "insights": [
+                {
+                    "type": "description",
+                    "content": "Hiểu rằng xung đột không phải lúc nào cũng tiêu cực, đôi khi đó là cơ hội để làm rõ giá trị và xây dựng mối quan hệ sâu sắc hơn."
+                },
+                {
+                    "type": "principle",
+                    "content": "Sự cân bằng thực sự đến từ việc tôn trọng cả nhu cầu của người khác và của chính mình, không phải từ việc hy sinh một bên.",
+                    "emphasis": "high"
+                },
+                {
+                    "type": "action",
+                    "content": "Thử nghiệm với việc đưa ra quyết định nhanh trong các vấn đề nhỏ để xây dựng sự tự tin dần dần."
+                },
+                {
+                    "type": "action",
+                    "content": "Tham gia các khóa học về thiền định hoặc mindfulness để tăng cường khả năng kết nối với trực giác nội tại."
+                }
+            ]
+        },
+        {
+            "id": "practical_recommendations",
+            "title_i18n": "Khuyến Nghị Thực Hành",
+            "summary": "Những hành động cụ thể bạn có thể áp dụng ngay để tối ưu hóa cuộc sống theo thiết kế sao của mình.",
+            "insights": [
+                {
+                    "type": "action",
+                    "content": "Tạo không gian sống hoặc làm việc với tông màu nhẹ nhàng và bố trí hài hòa để nuôi dưỡng năng lượng Thiên Bình của bạn."
+                },
+                {
+                    "type": "action",
+                    "content": "Lên lịch các cuộc trò chuyện sâu với bạn bè hoặc đối tác để thỏa mãn nhu cầu kết nối có ý nghĩa của bạn."
+                },
+                {
+                    "type": "action",
+                    "content": "Đặt ra quy tắc cá nhân về thời gian ra quyết định để tránh rơi vào vòng lặp phân tích quá mức."
+                },
+                {
+                    "type": "action",
+                    "content": "Ghi chép nhật ký để theo dõi các quyết định và kết quả, giúp bạn học cách tin tưởng vào phán đoán của chính mình nhiều hơn."
+                }
+            ]
+        }
+    ]
+}
