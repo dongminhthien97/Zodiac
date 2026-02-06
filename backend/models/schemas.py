@@ -84,9 +84,16 @@ class CompatibilityResponse(BaseModel):
 
 
 class NatalInsights(BaseModel):
+    overview: str
     personality: str
+    love: str
+    hobbies: str
+    career: str
+    life_path: str
     strengths: list[str]
+    challenges: list[str]
     growth_areas: list[str]
+    recommendations: list[str]
 
 
 class NatalResponse(BaseModel):

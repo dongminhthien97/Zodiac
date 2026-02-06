@@ -23,11 +23,38 @@ const CHART_LABELS = {
   ascendant: 'Cung mọc'
 }
 
-
 const INSIGHT_LABELS = {
+  overview: 'Tổng quan năng lượng',
   personality: 'Tính cách cốt lõi',
+  love: 'Tình yêu & kết nối',
+  hobbies: 'Sở thích phù hợp',
+  career: 'Định hướng công việc',
+  life_path: 'Định hướng cuộc sống',
   strengths: 'Điểm mạnh nổi bật',
-  growth_areas: 'Gợi ý phát triển'
+  challenges: 'Thách thức thường gặp',
+  growth_areas: 'Gợi ý phát triển',
+  recommendations: 'Khuyến nghị thực hành'
+}
+
+const PLANET_LABELS = {
+  Sun: 'Mặt Trời',
+  Moon: 'Mặt Trăng',
+  Mercury: 'Sao Thủy',
+  Venus: 'Sao Kim',
+  Mars: 'Sao Hỏa',
+  Jupiter: 'Sao Mộc',
+  Saturn: 'Sao Thổ',
+  Uranus: 'Thiên Vương',
+  Neptune: 'Hải Vương',
+  Pluto: 'Diêm Vương',
+  Mean_Node: 'Nút Bắc (Mean)',
+  True_Node: 'Nút Bắc (True)',
+  Chiron: 'Chiron'
+}
+
+const SIGN_LABELS = {
+  Ari: 'Aries', Tau: 'Taurus', Gem: 'Gemini', Can: 'Cancer', Leo: 'Leo', Vir: 'Virgo',
+  Lib: 'Libra', Sco: 'Scorpio', Sag: 'Sagittarius', Cap: 'Capricorn', Aqu: 'Aquarius', Pis: 'Pisces'
 }
 
 function formatGeneratedAt(value) {
@@ -39,10 +66,14 @@ function formatGeneratedAt(value) {
   return date.toLocaleString('vi-VN', { hour12: false })
 }
 
+function normalizeSign(sign) {
+  return SIGN_LABELS[sign] || sign
+}
+
 function renderValue(value) {
   if (Array.isArray(value)) {
     return (
-      <ul className="list-disc pl-5">
+      <ul className="list-disc space-y-1 pl-5">
         {value.map((item, index) => (
           <li key={`${index}-${typeof item === 'object' ? JSON.stringify(item) : item}`}>
             {typeof item === 'object' ? JSON.stringify(item) : item}
@@ -68,6 +99,22 @@ function ChartMetadata({ chart }) {
         {chartEntries.map(([key, value]) => (
           <div key={key}>
             <span className="font-semibold text-white">{CHART_LABELS[key] || key}:</span> {String(value || 'Chưa có dữ liệu')}
+          </div>
+        ))}
+      </div>
+    </ResultCard>
+  )
+}
+
+function PlanetSummary({ planets }) {
+  return (
+    <ResultCard title="Các hành tinh chính">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {planets.map((planet) => (
+          <div key={`${planet.name}-${planet.degree}`} className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <p className="font-semibold text-white">{PLANET_LABELS[planet.name] || planet.name}</p>
+            <p className="text-sm text-white/70">Cung: {normalizeSign(planet.sign)}</p>
+            <p className="text-sm text-white/70">Kinh độ: {Number(planet.degree).toFixed(2)}°</p>
           </div>
         ))}
       </div>
@@ -103,9 +150,7 @@ export default function ResultPage() {
         </div>
 
         <div className="mt-10">
-          <ResultCard title="Danh sách hành tinh (realtime từ API)">
-            {renderValue(person.planets)}
-          </ResultCard>
+          <PlanetSummary planets={person.planets || []} />
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
