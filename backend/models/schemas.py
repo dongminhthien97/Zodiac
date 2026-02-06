@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -79,6 +81,19 @@ class CompatibilityResponse(BaseModel):
     person_a: NatalChart
     person_b: NatalChart
     details: CompatibilityDetails
+
+
+class NatalInsights(BaseModel):
+    overview: str = "Tổng quan bản đồ sao của bạn đang được cập nhật chi tiết."
+    personality: str = "Mặt Trời thể hiện bản ngã cốt lõi và phong cách thể hiện cá nhân."
+    love: str = "Thông tin tình yêu đang được cập nhật từ dữ liệu cung hoàng đạo."
+    hobbies: str = "Sở thích phù hợp đang được tổng hợp từ năng lượng cung của bạn."
+    career: str = "Định hướng nghề nghiệp sẽ được gợi ý theo thế mạnh bản đồ sao."
+    life_path: str = "Lộ trình phát triển cuộc sống đang được đề xuất."
+    strengths: list[str] = Field(default_factory=list)
+    challenges: list[str] = Field(default_factory=list)
+    growth_areas: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
 
 
 class NatalResponse(BaseModel):
