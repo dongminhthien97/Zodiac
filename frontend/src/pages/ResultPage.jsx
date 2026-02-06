@@ -3,6 +3,8 @@ import ChartDisplay from '../components/ChartDisplay'
 import ResultCard from '../components/ResultCard'
 import { Button } from '../components/ui/button'
 import { useCompatibilityStore } from '../store/useCompatibilityStore'
+import AstrologyProfile from '../components/astrology/AstrologyProfile'
+import { UserPreferencesProvider } from '../contexts/UserPreferencesContext'
 
 const DETAIL_LABELS = {
   summary: 'Tổng quan',
@@ -129,6 +131,10 @@ export default function ResultPage() {
 
   if (!result) return null
 
+  // Check if we have the new astrology profile format
+  // We prioritize this new view if available
+  const hasAstrologyProfile = !!result.astrology_profile
+
   if (resultType === 'natal') {
     const { person, generated_at, insights } = result
     const insightEntries = Object.entries(insights || {}).filter(([, value]) => value !== null && value !== undefined)
@@ -153,13 +159,25 @@ export default function ResultPage() {
           <PlanetSummary planets={person.planets || []} />
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          {insightEntries.map(([key, value]) => (
-            <ResultCard key={key} title={INSIGHT_LABELS[key] || key}>
-              {renderValue(value)}
-            </ResultCard>
-          ))}
-        </div>
+        {/* New Astrology Profile Rendering */}
+        {hasAstrologyProfile ? (
+          <div className="mt-16 border-t border-white/10 pt-10">
+            <h2 className="text-3xl font-display text-center mb-10 text-gold-400">
+              Luận giải chuyên sâu
+            </h2>
+            <UserPreferencesProvider>
+              <AstrologyProfile contentJson={result.astrology_profile} />
+            </UserPreferencesProvider>
+          </div>
+        ) : (
+          <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            {insightEntries.map(([key, value]) => (
+              <ResultCard key={key} title={INSIGHT_LABELS[key] || key}>
+                {renderValue(value)}
+              </ResultCard>
+            ))}
+          </div>
+        )}
       </div>
     )
   }
