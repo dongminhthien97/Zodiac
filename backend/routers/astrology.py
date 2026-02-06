@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import ValidationError
 
-from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse
+from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalInsights, NatalRequest, NatalResponse
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService
 from supabase_client import get_supabase_client
