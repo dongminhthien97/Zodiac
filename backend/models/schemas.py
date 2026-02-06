@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -79,6 +81,19 @@ class CompatibilityResponse(BaseModel):
     person_a: NatalChart
     person_b: NatalChart
     details: CompatibilityDetails
+
+
+class NatalInsights(BaseModel):
+    overview: str
+    personality: str
+    love: str
+    hobbies: str
+    career: str
+    life_path: str
+    strengths: list[str]
+    challenges: list[str]
+    growth_areas: list[str]
+    recommendations: list[str]
 
 
 class NatalResponse(BaseModel):
