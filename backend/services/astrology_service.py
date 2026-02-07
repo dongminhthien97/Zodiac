@@ -7,20 +7,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from models.schemas import BirthInfo, CompatibilityDetails, NatalChart, NatalInsights, PlanetPosition
+from models.schemas import (
+    BirthInfo, CompatibilityDetails, NatalChart, PlanetPosition,
+    NatalResponse, ResponseMeta, ZodiacMeta, ResultSection, ResultSectionId,
+    InsightBlock, InsightBlockType, InsightEmphasis
+)
 from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIGN_RANGES
 
 # 1. THIẾT LẬP CẤU HÌNH HỆ THỐNG
 GEONAMES_USER = "century.boy"
 os.environ["GEONAMES_USERNAME"] = GEONAMES_USER
 
-from models.schemas import BirthInfo, NatalChart, PlanetPosition, CompatibilityDetails
-from utils.compatibility_data import (
-    SUN_SIGN_RANGES,
-    SIGN_TRAITS,
-    ELEMENT_COMPATIBILITY,
-    GENDER_TONE,
-)
+from utils.compatibility_data import GENDER_TONE
 
 
 NATAL_GUIDE = {
@@ -117,7 +115,7 @@ class AstrologyService:
             if hasattr(subject, "planets_list"):
                 for p in subject.planets_list:
                     pos = float(p.abs_pos) if hasattr(p, "abs_pos") else 0.0
-                    planets_res.append(PlanetPosition(name=p.name, sign=p.sign, degree=pos))
+                    planets_res.append(PlanetPosition(name=p.name, sign=p.sign, longitude=pos))
                     if p.name == "Moon":
                         moon_sign = p.sign
 
@@ -163,193 +161,123 @@ class AstrologyService:
         return "Capricorn"
 
 
-    def build_natal_insights(self, chart: NatalChart) -> NatalInsights:
-        sign = chart.sun_sign if chart.sun_sign in NATAL_GUIDE else "Capricorn"
-        element = self._element_of_sign(sign)
-        trait = self._trait_text(sign)
-        guide = NATAL_GUIDE[sign]
+    def build_v2_natal_response(
+        self, chart: NatalChart, person: BirthInfo
+    ) -> NatalResponse:
+        sun_sign = chart.sun_sign
+        moon_sign = chart.moon_sign or "Unknown"
+        rising_sign = chart.ascendant or "Unknown"
+        
+        # 1. Extract and Map Planets
+        planets_map = {p.name: p.sign for p in chart.planets}
+        mercury_sign = planets_map.get("Mercury", sun_sign)
+        venus_sign = planets_map.get("Venus", sun_sign)
+        mars_sign = planets_map.get("Mars", sun_sign)
+        jupiter_sign = planets_map.get("Jupiter", sun_sign)
+        saturn_sign = planets_map.get("Saturn", sun_sign)
+        
+        # 2. Dynamic Element Analysis (Premium Feature)
+        element_counts = {"Fire": 0, "Earth": 0, "Air": 0, "Water": 0}
+        for p in chart.planets:
+            e = self._element_of_sign(p.sign)
+            if e in element_counts:
+                # Weighted importance
+                weight = 3 if p.name in ["Sun", "Moon"] else 2 if p.name == "Ascendant" else 1
+                element_counts[e] += weight
+        
+        dominant_element = max(element_counts, key=element_counts.get)
+        element_summary = ", ".join([f"{k}: {v}" for k, v in element_counts.items()])
 
-        moon_note = (
-            f"Mặt Trăng ở {chart.moon_sign} cho thấy nhu cầu cảm xúc sâu bên trong và phản ứng bản năng trước áp lực."
-            if chart.moon_sign
-            else "Khi chưa có dữ liệu Mặt Trăng, bạn nên quan sát cảm xúc hằng ngày để tự nhận diện nhu cầu nội tâm."
-        )
-        asc_note = (
-            f"Cung mọc {chart.ascendant} mô tả phong cách bạn xuất hiện trước thế giới và cách người khác cảm nhận bạn trong lần gặp đầu tiên."
-            if chart.ascendant
-            else "Nếu chưa có cung mọc chính xác, hãy xem cách bạn phản ứng ở môi trường mới như một gợi ý về năng lượng bề mặt."
-        )
+        sections = []
 
-        overview = self._expand_natal_section(
-            sign=sign,
-            element=element,
-            trait=trait,
-            base_text=(
-                f"Bạn mang năng lượng {element} với Mặt Trời {sign}. {moon_note} {asc_note} "
-                f"Điểm nhấn chính của cung {sign} là {trait.lower()} và khả năng tạo ảnh hưởng thông qua phong cách giao tiếp đặc trưng."
+        # 3. Meta Data
+        meta = ResponseMeta(
+            version="v2.1-premium",
+            locale="vi",
+            chartType="with_birth_time" if not person.time_unknown else "without_birth_time",
+            zodiac=ZodiacMeta(
+                sun=sun_sign,
+                moon=chart.moon_sign,
+                rising=chart.ascendant,
+                element=dominant_element
             ),
-            focus="tổng quan năng lượng",
-        )
-        personality = self._expand_natal_section(
-            sign=sign,
-            element=element,
-            trait=trait,
-            base_text=(
-                f"Tính cách cốt lõi của {sign} thường phản ánh rõ qua cách bạn ra quyết định, giải quyết mâu thuẫn và duy trì hình ảnh cá nhân. "
-                f"Nền tính cách {trait.lower()} giúp bạn xây dựng bản sắc riêng nhưng cũng đòi hỏi sự tự kỷ luật cảm xúc."
-            ),
-            focus="tính cách",
-        )
-        love = self._expand_natal_section(
-            sign=sign,
-            element=element,
-            trait=trait,
-            base_text=(
-                f"Trong tình yêu, người mang năng lượng {sign} thường {guide['love'].lower()} "
-                "Bạn cần một mối quan hệ vừa có sự đồng hành cảm xúc, vừa có định hướng phát triển dài hạn để cảm thấy an toàn và được tôn trọng."
-            ),
-            focus="tình yêu",
-        )
-        hobbies = self._expand_natal_section(
-            sign=sign,
-            element=element,
-            trait=trait,
-            base_text=(
-                f"Sở thích phù hợp với bạn thường xoay quanh nhóm hoạt động như: {guide['hobbies'].lower()} "
-                "Các hoạt động này giúp bạn hồi phục năng lượng, nuôi dưỡng sáng tạo và cân bằng giữa trách nhiệm với nhu cầu cá nhân."
-            ),
-            focus="sở thích",
-        )
-        career = self._expand_natal_section(
-            sign=sign,
-            element=element,
-            trait=trait,
-            base_text=(
-                f"Về công việc, chất {element} của bạn kết hợp với khí chất {sign} tạo lợi thế ở môi trường cần {guide['career'].lower()} "
-                "Khi nghề nghiệp phản ánh đúng giá trị cốt lõi, bạn thường tăng tốc rất nhanh và duy trì hiệu suất ổn định hơn."
-            ),
-            focus="công việc",
-        )
-        life_path = self._expand_natal_section(
-            sign=sign,
-            element=element,
-            trait=trait,
-            base_text=(
-                f"Định hướng cuộc sống của bạn gắn với bài học: {guide['life_path'].lower()} "
-                "Con đường phát triển bền vững đến khi bạn cân bằng giữa tham vọng, cảm xúc, các mối quan hệ và khả năng phục hồi tinh thần."
-            ),
-            focus="cuộc sống",
+            planets=chart.planets
         )
 
-        strengths = [
-            self._build_long_bullet(sign, trait, "điểm mạnh 1"),
-            self._build_long_bullet(sign, trait, "điểm mạnh 2"),
-            self._build_long_bullet(sign, trait, "điểm mạnh 3"),
-            self._build_long_bullet(sign, trait, "điểm mạnh 4"),
-        ]
-        challenges = [
-            self._build_long_bullet(sign, trait, "thách thức 1"),
-            self._build_long_bullet(sign, trait, "thách thức 2"),
-            self._build_long_bullet(sign, trait, "thách thức 3"),
-            self._build_long_bullet(sign, trait, "thách thức 4"),
-        ]
-        growth_areas = [
-            self._build_long_bullet(sign, trait, "phát triển 1"),
-            self._build_long_bullet(sign, trait, "phát triển 2"),
-            self._build_long_bullet(sign, trait, "phát triển 3"),
-            self._build_long_bullet(sign, trait, "phát triển 4"),
-        ]
-        recommendations = [
-            self._build_long_bullet(sign, trait, "khuyến nghị 1"),
-            self._build_long_bullet(sign, trait, "khuyến nghị 2"),
-            self._build_long_bullet(sign, trait, "khuyến nghị 3"),
-            self._build_long_bullet(sign, trait, "khuyến nghị 4"),
-        ]
+        # 4. Section: Energy Blueprint (Dynamic)
+        sections.append(ResultSection(
+            id=ResultSectionId.ENERGY_OVERVIEW,
+            title_i18n="Bản Thiết Kế Năng Lượng (Premium)",
+            summary=f"Bạn sở hữu cấu trúc năng lượng trội hệ {dominant_element}. Phân bổ: {element_summary}.",
+            insights=[
+                InsightBlock(type=InsightBlockType.DESCRIPTION, content=f"Mặt Trời tại {sun_sign} là pin năng lượng chính, thúc đẩy bạn hướng tới sự {self._trait_text(sun_sign).lower()}."),
+                InsightBlock(type=InsightBlockType.PRINCIPLE, content=f"Mặt Trăng tại {moon_sign} điều phối thế giới nội tâm; bạn xử lý áp lực qua lăng kính của cung này.", emphasis=InsightEmphasis.HIGH),
+                InsightBlock(type=InsightBlockType.ACTION, content=f"Ngày hôm nay, hãy tập trung vào các hoạt động thuộc nhóm {dominant_element} để tái tạo sức lao động.")
+            ]
+        ))
 
-        return NatalInsights(
-            overview=overview,
-            personality=personality,
-            love=love,
-            hobbies=hobbies,
-            career=career,
-            life_path=life_path,
-            strengths=strengths,
-            challenges=challenges,
-            growth_areas=growth_areas,
-            recommendations=recommendations,
-        )
+        # 5. Section: Soul Purpose & Destiny
+        sections.append(ResultSection(
+            id=ResultSectionId.LIFE_DIRECTION,
+            title_i18n="Sứ Mệnh & Định Hướng Tâm Hồn",
+            summary=f"Cung Mọc {rising_sign} và các hành tinh xã hội định hình lộ trình phát triển của bạn.",
+            insights=[
+                InsightBlock(type=InsightBlockType.DESCRIPTION, content=f"Cung Mọc {rising_sign} cho thấy 'chiếc mặt nạ' giúp bạn chiến thắng các thử thách ban đầu."),
+                InsightBlock(type=InsightBlockType.PRINCIPLE, content=f"Mộc Tinh (Jupiter) tại {jupiter_sign} là chìa khóa mở ra sự may mắn thông qua việc mở rộng tư duy.", emphasis=InsightEmphasis.MEDIUM),
+                InsightBlock(type=InsightBlockType.WARNING, content=f"Thổ Tinh {saturn_sign} nhắc nhở về những ranh giới và kỷ luật cần thiết để đạt tới thành công bền vững.", emphasis=InsightEmphasis.HIGH)
+            ]
+        ))
 
-    def compatibility(self, a: NatalChart, b: NatalChart, gender_a: str, gender_b: str) -> CompatibilityDetails:
-        element_score = self._element_score(a.sun_sign, b.sun_sign)
-        trait_a = self._trait_text(a.sun_sign)
-        trait_b = self._trait_text(b.sun_sign)
-        element_a = self._element_of_sign(a.sun_sign)
-        element_b = self._element_of_sign(b.sun_sign)
-        tone = GENDER_TONE.get((gender_a, gender_b), "cân bằng")
+        # 6. Section: Intellect & Influence (Mercury)
+        sections.append(ResultSection(
+            id=ResultSectionId.CORE_PERSONALITY,
+            title_i18n="Tư Duy & Tầm Ảnh Hưởng",
+            summary=f"Phong cách giao tiếp và xử lý thông tin dựa trên Thủy Tinh tại {mercury_sign}.",
+            insights=[
+                InsightBlock(type=InsightBlockType.DESCRIPTION, content=f"Với Mercury {mercury_sign}, bạn có xu hướng truyền đạt ý tưởng một cách {NATAL_GUIDE.get(mercury_sign, {}).get('career', 'linh hoạt').lower()}."),
+                InsightBlock(type=InsightBlockType.ACTION, content="Thực hành viết lách hoặc chia sẻ kiến thức để tối ưu hóa năng lượng Mercury.", emphasis=InsightEmphasis.MEDIUM)
+            ]
+        ))
 
-        strengths = self._strength_phrase(element_score)
-        challenge = self._challenge_phrase(element_a, element_b)
+        # 7. Section: Love & Intimacy (Venus/Mars)
+        sections.append(ResultSection(
+            id=ResultSectionId.LOVE_CONNECTION,
+            title_i18n="Tình Yêu & Sự Gắn Kết (Premium)",
+            summary=f"Sự kết hợp giữa Kim Tinh ({venus_sign}) và Hỏa Tinh ({mars_sign}) tạo nên bản sắc tình cảm của bạn.",
+            insights=[
+                InsightBlock(type=InsightBlockType.DESCRIPTION, content=f"Kim Tinh {venus_sign} định nghĩa cái đẹp và giá trị mà bạn tìm kiếm trong một người bạn đời."),
+                InsightBlock(type=InsightBlockType.PRINCIPLE, content=f"Hỏa Tinh {mars_sign} là đam mê và cách bạn chủ động chinh phục mục tiêu tình cảm.", emphasis=InsightEmphasis.MEDIUM),
+                InsightBlock(type=InsightBlockType.ACTION, content="Hãy thành thật với nhu cầu Venus để xây dựng mối quan hệ bền bỉ.")
+            ]
+        ))
 
-        return CompatibilityDetails(
-            score=element_score,
-            summary=(
-                f"{a.sun_sign} ({element_a}) và {b.sun_sign} ({element_b}) có mức hòa hợp {element_score}%. "
-                f"Năng lượng tổng thể thiên về {tone}."
-            ),
-            personality=f"Người A {trait_a} Trong khi đó người B {trait_b}",
-            love_style=f"Khi yêu, cặp đôi này phát huy {strengths.lower()} nhưng cần chú ý {challenge.lower()}.",
-            career=(
-                f"Trong công việc, {element_a} kết hợp với {element_b} phù hợp cho vai trò phân chia rõ ràng: "
-                "một người dẫn dắt, một người duy trì nhịp độ."
-            ),
-            relationships=(
-                f"Mối quan hệ có sắc thái {tone}, phù hợp khi cả hai thống nhất nguyên tắc giao tiếp "
-                "và phản hồi định kỳ."
-            ),
-            conflict_points=challenge,
-            advice=(
-                "Ưu tiên đối thoại thẳng thắn, đặt lịch trao đổi cố định mỗi tuần và luôn tôn trọng khác biệt cảm xúc."
-            ),
-            recommended_activities=self._recommended_activities(element_a, element_b),
-            aspects=[
-                f"Sun {a.sun_sign} - Sun {b.sun_sign}",
-                f"Element pairing: {element_a}/{element_b}",
-                f"Relationship tone: {tone}",
-            ],
-        )
+        # 8. Planet Data Table
+        sections.append(ResultSection(
+            id=ResultSectionId.PLANET_POSITIONS,
+            title_i18n="Bảng Tọa Độ Thiên Thể (Swiss Ephemeris)",
+            summary="Dữ liệu thiên văn chính xác cao, hỗ trợ cho việc nghiên cứu sâu.",
+            insights=[
+                InsightBlock(type=InsightBlockType.DESCRIPTION, content=f"{p.name}: {p.sign} ({p.longitude:.2f}°) {'(R)' if getattr(p, 'retrograde', False) else ''}")
+                for p in chart.planets
+            ]
+        ))
+
+        # 9. Practical Recommendations
+        sections.append(ResultSection(
+            id=ResultSectionId.PRACTICAL_RECOMMENDATIONS,
+            title_i18n="Khuyến Nghị Cá Nhân Hóa",
+            summary="Các bước hành động cụ thể dựa trên cấu trúc bản đồ sao hiện hành.",
+            insights=[
+                InsightBlock(type=InsightBlockType.ACTION, content=f"Tối ưu hóa năng lực tiềm tàng của {dominant_element} qua các thói quen hàng ngày."),
+                InsightBlock(type=InsightBlockType.ACTION, content=f"Học cách kiềm chế những xung động tiêu cực từ {mars_sign} khi gặp căng thẳng.", emphasis=InsightEmphasis.MEDIUM),
+                InsightBlock(type=InsightBlockType.ACTION, content="Tham vấn chuyên gia về các chu kỳ transit quan trọng trong năm.")
+            ]
+        ))
+
+        return NatalResponse(meta=meta, sections=sections)
 
 
-    def _expand_natal_section(self, sign: str, element: str, trait: str, base_text: str, focus: str) -> str:
-        expansion_pool = [
-            f"Ở chủ đề {focus}, bạn nên đọc kết quả này như một bản đồ định hướng dài hạn thay vì một nhãn dán tính cách cố định, vì năng lượng {sign} phát triển theo trải nghiệm sống.",
-            f"Năng lượng nhóm {element} khiến bạn nhạy với môi trường và chất lượng quan hệ xung quanh; khi hệ sinh thái phù hợp, bạn mở rộng năng lực rất nhanh và thể hiện rõ tính {trait.lower()}.",
-            "Một nguyên tắc quan trọng là phân biệt giữa phản ứng cảm xúc tức thời và giá trị cốt lõi bền vững, vì hai yếu tố này thường bị trộn lẫn trong các quyết định quan trọng.",
-            "Khi gặp áp lực, hãy quay về các thói quen nền tảng: ngủ đủ, vận động nhẹ, viết nhật ký cảm xúc và lên lịch ưu tiên, để năng lượng cá nhân không bị tiêu hao bởi những việc thứ yếu.",
-            "Bạn cũng nên theo dõi chu kỳ hiệu suất theo tuần: lúc nào bạn tập trung tốt nhất, lúc nào dễ phân tâm, yếu tố nào làm giảm động lực; dữ liệu tự quan sát sẽ giúp bạn điều chỉnh rất chính xác.",
-            "Trong giao tiếp, cách diễn đạt rõ ràng nhu cầu cá nhân nhưng vẫn tôn trọng cảm xúc người khác sẽ giúp giảm hiểu nhầm và tăng chất lượng hợp tác, đặc biệt trong các mối quan hệ thân thiết.",
-            "Để kết quả này hữu ích, hãy chuyển từng ý thành hành động đo được: mục tiêu theo quý, chỉ số theo tháng và thói quen theo ngày; việc lượng hóa sẽ biến insight thành tiến bộ thực tế.",
-            "Nếu bạn đang ở giai đoạn chuyển hướng, hãy ưu tiên các lựa chọn cho phép học sâu, có phản hồi nhanh và giữ được quyền tự chủ, vì đây là điều kiện tốt để bản sắc cá nhân trưởng thành.",
-            "Một điểm quan trọng khác là ranh giới: bạn có thể đồng cảm và kết nối mạnh, nhưng vẫn cần giới hạn rõ về thời gian, năng lượng và trách nhiệm để tránh kiệt sức tinh thần.",
-            "Khi phát triển đúng hướng, bạn sẽ thấy sự đồng bộ giữa cảm xúc bên trong, hành vi bên ngoài và kết quả dài hạn; đó là tín hiệu cho thấy bản đồ sao đang được sống một cách lành mạnh.",
-            "Hãy xem phần mô tả này như nền tảng để đối thoại với chính mình: điều gì đang đúng, điều gì cần điều chỉnh, và điều gì nên buông bỏ để tập trung cho mục tiêu quan trọng hơn.",
-            "Cuối cùng, sự trưởng thành không đến từ việc trở thành phiên bản hoàn hảo, mà đến từ khả năng quay lại trạng thái cân bằng sau mỗi lần xáo trộn và tiếp tục tiến lên với nhận thức rõ ràng hơn.",
-        ]
-        text = base_text.strip()
-        idx = 0
-        while len(text.split()) < 300:
-            text = f"{text} {expansion_pool[idx % len(expansion_pool)]}".strip()
-            idx += 1
-        return text
 
-    def _build_long_bullet(self, sign: str, trait: str, topic: str) -> str:
-        templates = {
-            "điểm mạnh": "Bạn có khả năng phát huy chất {sign} một cách bền bỉ khi môi trường phù hợp; sự {trait} giúp bạn đọc bối cảnh nhanh, phối hợp tốt với người khác và tạo ảnh hưởng tích cực mà không cần áp đặt.",
-            "thách thức": "Thách thức của bạn nằm ở việc cân bằng giữa kỳ vọng bên ngoài và nhu cầu bên trong; nếu thiếu nhịp nghỉ và cơ chế phản tư, bạn dễ ôm quá nhiều vai trò và giảm chất lượng quyết định.",
-            "phát triển": "Vùng phát triển quan trọng là chuyển hiểu biết thành thói quen cụ thể: đặt mục tiêu nhỏ, kiểm tra tiến độ định kỳ và điều chỉnh hành vi theo dữ liệu thực tế thay vì chỉ theo cảm hứng nhất thời.",
-            "khuyến nghị": "Khuyến nghị thực hành cho bạn là thiết kế hệ sinh thái hỗ trợ: lịch làm việc rõ ràng, ranh giới quan hệ lành mạnh, hoạt động phục hồi đều đặn và một cộng đồng giúp bạn nhận phản hồi chất lượng.",
-        }
-        key = "điểm mạnh" if "điểm mạnh" in topic else "thách thức" if "thách thức" in topic else "phát triển" if "phát triển" in topic else "khuyến nghị"
-        return templates[key].format(sign=sign, trait=trait.lower())
 
 
     def _element_of_sign(self, sign: str) -> str:

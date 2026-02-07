@@ -1,8 +1,4 @@
 import React, { useState } from 'react'
-import { Button } from './ui/button.tsx'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card.tsx'
-import { Input } from './ui/input.tsx'
-import { Select } from './ui/select.tsx'
 import { fetchNatal } from '../services/api'
 import { useCompatibilityStore } from '../store/useCompatibilityStore'
 import { buildBirthPlace, COUNTRY_CITY_OPTIONS, DEFAULT_COUNTRY, getDefaultCity } from '../data/locations'
@@ -85,84 +81,142 @@ export default function SingleZodiacForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card className="bg-white/3">
-        <CardHeader>
-          <CardTitle>Thông tin của bạn</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            <div>
-              <label className="text-xs uppercase tracking-wide text-white/60">Tên (không bắt buộc)</label>
-              <Input
-                value={person.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPerson({ ...person, name: e.target.value })}
-                placeholder="Ví dụ: Linh"
+    <form onSubmit={handleSubmit} className="single-form-wrapper animate-fade-in">
+      <div className="glass-card person-card">
+        <h3 className="card-title">Hồ sơ cá nhân</h3>
+        
+        <div className="form-grid">
+          <div className="form-field">
+            <label>Tên (không bắt buộc)</label>
+            <input
+              className="glass-input"
+              value={person.name}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPerson({ ...person, name: e.target.value })}
+              placeholder="Ví dụ: Linh"
+            />
+          </div>
+
+          <div className="form-field">
+            <label>Giới tính</label>
+            <select
+              className="glass-input"
+              value={person.gender}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPerson({ ...person, gender: e.target.value })}
+            >
+              <option value="female">Nữ</option>
+              <option value="male">Nam</option>
+              <option value="other">Khác</option>
+            </select>
+          </div>
+
+          <div className="form-row">
+            <div className="form-field">
+              <label>Ngày sinh</label>
+              <input
+                type="date"
+                className="glass-input"
+                value={person.birth_date}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPerson({ ...person, birth_date: e.target.value })}
               />
             </div>
-            <div>
-              <label className="text-xs uppercase tracking-wide text-white/60">Giới tính</label>
-              <Select
-                value={person.gender}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPerson({ ...person, gender: e.target.value })}
-              >
-                <option value="female">Nữ</option>
-                <option value="male">Nam</option>
-                <option value="other">Khác</option>
-              </Select>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-xs uppercase tracking-wide text-white/60">Ngày sinh</label>
-                <Input
-                  type="date"
-                  value={person.birth_date}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPerson({ ...person, birth_date: e.target.value })}
+            <div className="form-field">
+              <label>Giờ sinh</label>
+              <input
+                type="time"
+                className="glass-input"
+                value={person.birth_time}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPerson({ ...person, birth_time: e.target.value })}
+                disabled={person.time_unknown}
+              />
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={person.time_unknown}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPerson({ ...person, time_unknown: e.target.checked })}
                 />
-              </div>
-              <div>
-                <label className="text-xs uppercase tracking-wide text-white/60">Giờ sinh</label>
-                <Input
-                  type="time"
-                  value={person.birth_time}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPerson({ ...person, birth_time: e.target.value })}
-                  disabled={person.time_unknown}
-                />
-                <label className="mt-2 flex items-center gap-2 text-xs text-white/60">
-                  <input
-                    type="checkbox"
-                    checked={person.time_unknown}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPerson({ ...person, time_unknown: e.target.checked })}
-                  />
-                  Không rõ giờ sinh
-                </label>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-xs uppercase tracking-wide text-white/60">Quốc gia</label>
-                <Select value={person.country} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCountry(e.target.value)}>
-                  {countries.map((country) => (
-                    <option key={country} value={country}>{country}</option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs uppercase tracking-wide text-white/60">Thành phố</label>
-                <Select value={person.city} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCity(e.target.value)}>
-                  {cityOptions.map((city) => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </Select>
-              </div>
+                <span>Không rõ giờ sinh</span>
+              </label>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="flex justify-center">
-        <Button type="submit" variant="cute" className="px-10">Xem cung hoàng đạo</Button>
+          <div className="form-row">
+            <div className="form-field">
+              <label>Quốc gia</label>
+              <select className="glass-input" value={person.country} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCountry(e.target.value)}>
+                {countries.map((country) => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Thành phố</label>
+              <select className="glass-input" value={person.city} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCity(e.target.value)}>
+                {cityOptions.map((city: string) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="submit-area">
+        <button type="submit" className="btn-cosmic main-submit">
+          Giải Mã Bản Đồ Sao
+        </button>
+      </div>
+
+      <style>{`
+        .single-form-wrapper {
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        .submit-area {
+          display: flex;
+          justify-content: center;
+          margin-top: 40px;
+        }
+        .main-submit {
+          min-width: 250px;
+        }
+        .card-title {
+          font-size: 1.5rem;
+          margin-bottom: 24px;
+          color: var(--gold-primary);
+          font-family: var(--font-display);
+        }
+        .form-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .form-field {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .form-field label {
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: var(--white-40);
+        }
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 8px;
+          font-size: 12px;
+          color: var(--white-70);
+          cursor: pointer;
+        }
+      `}</style>
     </form>
   )
 }

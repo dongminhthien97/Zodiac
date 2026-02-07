@@ -51,7 +51,7 @@ class NatalRequest(BaseModel):
 class PlanetPosition(BaseModel):
     name: str
     sign: str
-    degree: float
+    longitude: float
 
 
 class NatalChart(BaseModel):
@@ -83,20 +83,66 @@ class CompatibilityResponse(BaseModel):
     details: CompatibilityDetails
 
 
-class NatalInsights(BaseModel):
-    overview: str = "Tổng quan bản đồ sao của bạn đang được cập nhật chi tiết."
-    personality: str = "Mặt Trời thể hiện bản ngã cốt lõi và phong cách thể hiện cá nhân."
-    love: str = "Thông tin tình yêu đang được cập nhật từ dữ liệu cung hoàng đạo."
-    hobbies: str = "Sở thích phù hợp đang được tổng hợp từ năng lượng cung của bạn."
-    career: str = "Định hướng nghề nghiệp sẽ được gợi ý theo thế mạnh bản đồ sao."
-    life_path: str = "Lộ trình phát triển cuộc sống đang được đề xuất."
-    strengths: list[str] = Field(default_factory=list)
-    challenges: list[str] = Field(default_factory=list)
-    growth_areas: list[str] = Field(default_factory=list)
-    recommendations: list[str] = Field(default_factory=list)
+
+from enum import Enum
+
+
+class InsightBlockType(str, Enum):
+    DESCRIPTION = "description"
+    PRINCIPLE = "principle"
+    WARNING = "warning"
+    ACTION = "action"
+
+
+class InsightEmphasis(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class InsightBlock(BaseModel):
+    type: InsightBlockType
+    content: str
+    emphasis: Optional[InsightEmphasis] = None
+
+
+class ResultSectionId(str, Enum):
+    ENERGY_OVERVIEW = "energy_overview"
+    CORE_PERSONALITY = "core_personality"
+    LOVE_CONNECTION = "love_connection"
+    HOBBIES = "hobbies"
+    CAREER_DIRECTION = "career_direction"
+    LIFE_DIRECTION = "life_direction"
+    STRENGTHS = "strengths"
+    CHALLENGES = "challenges"
+    GROWTH_SUGGESTIONS = "growth_suggestions"
+    PRACTICAL_RECOMMENDATIONS = "practical_recommendations"
+    PLANET_POSITIONS = "planet_positions"
+
+
+class ResultSection(BaseModel):
+    id: ResultSectionId
+    title_i18n: str
+    summary: str
+    insights: list[InsightBlock]
+
+
+class ZodiacMeta(BaseModel):
+    sun: str
+    moon: Optional[str] = None
+    rising: Optional[str] = None
+    element: str
+
+
+class ResponseMeta(BaseModel):
+    version: str = "v2"
+    locale: str = "vi"
+    chartType: str = "with_birth_time"
+    zodiac: ZodiacMeta
+    planets: list[PlanetPosition] = Field(default_factory=list)
 
 
 class NatalResponse(BaseModel):
-    generated_at: str
-    person: NatalChart
-    insights: NatalInsights
+    meta: ResponseMeta
+    sections: list[ResultSection]
+

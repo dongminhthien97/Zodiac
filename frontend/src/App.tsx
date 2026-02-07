@@ -6,8 +6,11 @@ export default function App() {
   const result = useCompatibilityStore((state) => state.result)
 
   return (
-    <div className="min-h-screen">
-      {result ? <ResultPage /> : <Home />}
-    </div>
+    <>
+      <div className="stars-overlay"></div>
+      <div className="app-container">
+        {result ? <ResultPage /> : <Home />}
+      </div>
+    </>
   )
 }

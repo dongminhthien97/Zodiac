@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import ValidationError
 
-from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalInsights, NatalRequest, NatalResponse
+from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService
 from supabase_client import get_supabase_client
@@ -75,5 +75,5 @@ def natal(raw_payload: dict = Body(...)) -> NatalResponse:
         raise HTTPException(status_code=400, detail="Không thể tìm được vị trí sinh")
 
     chart = astrology.build_natal_chart(payload.person, lat, lon)
-    insights = astrology.build_natal_insights(chart)
-    return NatalResponse(generated_at=datetime.now(timezone.utc).isoformat(), person=chart, insights=insights)
+    return astrology.build_v2_natal_response(chart, payload.person)
+

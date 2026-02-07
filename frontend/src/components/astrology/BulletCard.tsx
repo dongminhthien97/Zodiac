@@ -1,6 +1,5 @@
 import { useDeduplication } from './DeduplicationProvider'
 import { LAYERS, LayerConfig } from '../../constants/layers.ts'
-import clsx from 'clsx'
 
 interface BulletCardProps {
     text: string;
@@ -25,33 +24,53 @@ const BulletCard = ({ text, layerId }: BulletCardProps) => {
     const Icon = layerConfig?.icon
 
     return (
-        <article
-            className={clsx(
-                "rounded-lg p-3 sm:p-4 mb-3 last:mb-0 transition-all duration-200",
-                "border border-white/5 bg-white/5 hover:bg-white/10",
-                "text-white/90 shadow-sm",
-
-                // Dynamic layer styling
-                layerId === 'psychological' && "psychological-card",
-                layerId === 'spiritual' && "spiritual-card",
-                layerId === 'practical' && "practical-card"
-            )}
-        >
-            <div className="flex gap-3">
+        <article className={`bullet-card layer-${layerId}`}>
+            <div className="bullet-content">
                 {Icon && (
-                    <div className={clsx(
-                        "mt-1 shrink-0",
-                        layerId === 'psychological' && "text-gold-400",
-                        layerId === 'spiritual' && "text-nebula-400",
-                        layerId === 'practical' && "text-mint-400"
-                    )}>
+                    <div className="bullet-icon">
                         <Icon size={18} />
                     </div>
                 )}
-                <div className="content-text leading-relaxed text-sm sm:text-base max-w-[68ch]">
+                <div className="bullet-text">
                     {text}
                 </div>
             </div>
+
+            <style>{`
+                .bullet-card {
+                    padding: 16px;
+                    border-radius: var(--radius-md);
+                    margin-bottom: 12px;
+                    background: var(--white-05);
+                    border: 1px solid var(--white-10);
+                    transition: all 0.2s ease;
+                }
+                .bullet-card:hover {
+                    background: var(--white-10);
+                    transform: translateX(4px);
+                }
+                .bullet-content {
+                    display: flex;
+                    gap: 12px;
+                }
+                .bullet-icon {
+                    flex-shrink: 0;
+                    margin-top: 2px;
+                }
+                .bullet-text {
+                    font-size: 15px;
+                    line-height: 1.6;
+                    color: var(--white-70);
+                    max-width: 68ch;
+                }
+                .layer-psychological .bullet-icon { color: var(--gold-primary); }
+                .layer-spiritual .bullet-icon { color: var(--nebula-purple); }
+                .layer-practical .bullet-icon { color: #10b981; } /* Mint color */
+                
+                .layer-psychological { border-left: 3px solid var(--gold-primary); }
+                .layer-spiritual { border-left: 3px solid var(--nebula-purple); }
+                .layer-practical { border-left: 3px solid #10b981; }
+            `}</style>
         </article>
     )
 }
