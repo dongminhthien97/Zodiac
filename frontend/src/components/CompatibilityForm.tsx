@@ -8,6 +8,7 @@ import {
   getDefaultCity,
 } from "../data/locations";
 import { Sparkles, Heart } from "lucide-react";
+import { SelectLight } from "./ui/select";
 
 interface PersonData {
   name: string;
@@ -86,8 +87,7 @@ function PersonForm({
 
         <div className="form-field">
           <label>Giới tính</label>
-          <select
-            className="glass-input"
+          <SelectLight
             value={person.gender}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
               onChange({ ...person, gender: e.target.value })
@@ -96,7 +96,7 @@ function PersonForm({
             <option value="female">Nữ</option>
             <option value="male">Nam</option>
             <option value="other">Khác</option>
-          </select>
+          </SelectLight>
         </div>
 
         <div className="form-row">
@@ -138,8 +138,7 @@ function PersonForm({
         <div className="form-row">
           <div className="form-field">
             <label>Quốc gia</label>
-            <select
-              className="glass-input"
+            <SelectLight
               value={person.country}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 updateCountry(e.target.value)
@@ -150,12 +149,11 @@ function PersonForm({
                   {country}
                 </option>
               ))}
-            </select>
+            </SelectLight>
           </div>
           <div className="form-field">
             <label>Thành phố</label>
-            <select
-              className="glass-input"
+            <SelectLight
               value={person.city}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 updateCity(e.target.value)
@@ -166,7 +164,7 @@ function PersonForm({
                   {city}
                 </option>
               ))}
-            </select>
+            </SelectLight>
           </div>
         </div>
       </div>

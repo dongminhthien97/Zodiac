@@ -7,6 +7,7 @@ import {
   DEFAULT_COUNTRY,
   getDefaultCity,
 } from "../data/locations";
+import { SelectLight } from "./ui/select";
 
 interface PersonData {
   name: string;
@@ -131,8 +132,7 @@ export default function SingleZodiacForm() {
 
           <div className="form-field">
             <label>Giới tính</label>
-            <select
-              className="glass-input"
+            <SelectLight
               value={person.gender}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setPerson({ ...person, gender: e.target.value })
@@ -141,7 +141,7 @@ export default function SingleZodiacForm() {
               <option value="female">Nữ</option>
               <option value="male">Nam</option>
               <option value="other">Khác</option>
-            </select>
+            </SelectLight>
           </div>
 
           <div className="form-row">
@@ -183,8 +183,7 @@ export default function SingleZodiacForm() {
           <div className="form-row">
             <div className="form-field">
               <label>Quốc gia</label>
-              <select
-                className="glass-input"
+              <SelectLight
                 value={person.country}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                   updateCountry(e.target.value)
@@ -195,12 +194,11 @@ export default function SingleZodiacForm() {
                     {country}
                   </option>
                 ))}
-              </select>
+              </SelectLight>
             </div>
             <div className="form-field">
               <label>Thành phố</label>
-              <select
-                className="glass-input"
+              <SelectLight
                 value={person.city}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                   updateCity(e.target.value)
@@ -211,7 +209,7 @@ export default function SingleZodiacForm() {
                     {city}
                   </option>
                 ))}
-              </select>
+              </SelectLight>
             </div>
           </div>
         </div>

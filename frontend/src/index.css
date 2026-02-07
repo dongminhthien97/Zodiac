@@ -134,10 +134,22 @@ a {
   border: 1px solid var(--white-10);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
-  color: rgb(255, 255, 255);
+  color: var(--white);
   font-family: var(--font-body);
   font-size: 16px;
   transition: all 0.3s ease;
+}
+
+.glass-input.dark-bg {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--white);
+}
+
+.glass-input.light-bg {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.2);
+  color: #333;
 }
 
 .glass-input:focus {
@@ -145,6 +157,11 @@ a {
   border-color: var(--nebula-purple);
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 15px var(--nebula-purple-glow);
+}
+
+.glass-input::placeholder {
+  color: var(--white-40);
+  opacity: 1;
 }
 
 /* Buttons */
