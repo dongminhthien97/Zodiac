@@ -10,7 +10,7 @@ from typing import Optional
 from models.schemas import (
     BirthInfo, CompatibilityDetails, NatalChart, PlanetPosition,
     NatalResponse, ResponseMeta, ZodiacMeta, ResultSection, ResultSectionId,
-    InsightBlock, InsightBlockType, InsightEmphasis
+    InsightBlock, InsightBlockType, InsightEmphasis, StandardReportResponse
 )
 from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIGN_RANGES
 
@@ -320,3 +320,138 @@ class AstrologyService:
         element_a = SIGN_TRAITS.get(sign_a, "").split("|")[0]
         element_b = SIGN_TRAITS.get(sign_b, "").split("|")[0]
         return ELEMENT_COMPATIBILITY.get((element_a, element_b), 60)
+
+    def build_standard_report(
+        self, chart: NatalChart, person: BirthInfo
+    ) -> StandardReportResponse:
+        """Generate standard format report matching the required template"""
+        from services.report_renderer import render_personal_report
+        
+        # Build astrology data structure for report renderer
+        astrology_data = self._build_astrology_data(chart, person)
+        
+        # Generate report using the renderer
+        report = render_personal_report(astrology_data)
+        
+        generated_at = datetime.now().isoformat()
+        
+        return StandardReportResponse(
+            report=report,
+            generated_at=generated_at,
+            chart_data=chart
+        )
+
+    def _build_astrology_data(self, chart: NatalChart, person: BirthInfo) -> dict:
+        """Build astrology data structure for report renderer"""
+        astrology_data = {}
+        
+        # Map planets to their positions
+        for planet in chart.planets:
+            astrology_data[planet.name.lower()] = {
+                'sign': planet.sign,
+                'longitude': planet.longitude
+            }
+        
+        # Add basic info
+        astrology_data['sun'] = {
+            'sign': chart.sun_sign,
+            'longitude': self._get_planet_longitude(chart, 'Sun')
+        }
+        
+        if chart.moon_sign:
+            astrology_data['moon'] = {
+                'sign': chart.moon_sign,
+                'longitude': self._get_planet_longitude(chart, 'Moon')
+            }
+        
+        if chart.ascendant:
+            astrology_data['ascendant'] = {
+                'sign': chart.ascendant,
+                'longitude': 0.0  # Ascendant longitude not available in current structure
+            }
+        
+        return astrology_data
+
+    def _get_planet_longitude(self, chart: NatalChart, planet_name: str) -> float:
+        """Get longitude for a specific planet"""
+        for planet in chart.planets:
+            if planet.name == planet_name:
+                return planet.longitude
+        return 0.0
+
+    def compatibility(
+        self, chart_a: NatalChart, chart_b: NatalChart, gender_a: str, gender_b: str
+    ) -> CompatibilityDetails:
+        """Calculate compatibility between two charts"""
+        score = self._element_score(chart_a.sun_sign, chart_b.sun_sign)
+        
+        # Apply gender tone adjustments
+        tone = GENDER_TONE.get((gender_a, gender_b), "bổ trợ")
+        
+        # Calculate personality compatibility
+        personality = f"Phù hợp {tone} nhau với điểm số {score}/100"
+        
+        # Calculate love style compatibility
+        venus_a = self._get_planet_sign(chart_a, "Venus") or chart_a.sun_sign
+        venus_b = self._get_planet_sign(chart_b, "Venus") or chart_b.sun_sign
+        love_score = self._element_score(venus_a, venus_b)
+        love_style = f"Phong cách yêu thương: {tone} với điểm số {love_score}/100"
+        
+        # Calculate career compatibility
+        mercury_a = self._get_planet_sign(chart_a, "Mercury") or chart_a.sun_sign
+        mercury_b = self._get_planet_sign(chart_b, "Mercury") or chart_b.sun_sign
+        career_score = self._element_score(mercury_a, mercury_b)
+        career = f"Hợp tác công việc: {tone} với điểm số {career_score}/100"
+        
+        # Calculate relationship dynamics
+        mars_a = self._get_planet_sign(chart_a, "Mars") or chart_a.sun_sign
+        mars_b = self._get_planet_sign(chart_b, "Mars") or chart_b.sun_sign
+        relationship_score = self._element_score(mars_a, mars_b)
+        relationships = f"Động lực mối quan hệ: {tone} với điểm số {relationship_score}/100"
+        
+        # Generate advice based on compatibility
+        if score >= 80:
+            advice = "Mối quan hệ thuận lợi, hãy tận dụng điểm mạnh của nhau để phát triển."
+        elif score >= 60:
+            advice = "Cần nỗ lực thấu hiểu và điều chỉnh để đạt được sự hòa hợp."
+        else:
+            advice = "Cần nhiều nỗ lực và kiên nhẫn để xây dựng mối quan hệ bền vững."
+        
+        # Identify conflict points
+        conflict_points = self._challenge_phrase(
+            SIGN_TRAITS.get(chart_a.sun_sign, "").split("|")[0],
+            SIGN_TRAITS.get(chart_b.sun_sign, "").split("|")[0]
+        )
+        
+        # Generate recommended activities
+        activities = self._recommended_activities(
+            SIGN_TRAITS.get(chart_a.sun_sign, "").split("|")[0],
+            SIGN_TRAITS.get(chart_b.sun_sign, "").split("|")[0]
+        )
+        
+        # Generate aspects
+        aspects = [
+            f"Sun {chart_a.sun_sign} - Sun {chart_b.sun_sign}: {self._strength_phrase(score)}",
+            f"Venus {venus_a} - Venus {venus_b}: {self._strength_phrase(love_score)}",
+            f"Mars {mars_a} - Mars {mars_b}: {self._strength_phrase(relationship_score)}"
+        ]
+
+        return CompatibilityDetails(
+            score=score,
+            summary=f"Độ tương thích tổng thể: {score}/100 - {tone}",
+            personality=personality,
+            love_style=love_style,
+            career=career,
+            relationships=relationships,
+            advice=advice,
+            conflict_points=conflict_points,
+            recommended_activities=activities,
+            aspects=aspects
+        )
+
+    def _get_planet_sign(self, chart: NatalChart, planet_name: str) -> Optional[str]:
+        """Get sign for a specific planet"""
+        for planet in chart.planets:
+            if planet.name == planet_name:
+                return planet.sign
+        return None

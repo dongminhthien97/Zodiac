@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from routers.astrology import router as astrology_router
 from routers.chart import router as chart_router
+from routers.zodiac_ai import router as zodiac_ai_router
 
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "DEBUG"))
@@ -32,6 +33,7 @@ app.add_middleware(
 
 app.include_router(astrology_router, prefix="/api")
 app.include_router(chart_router, prefix="/api")
+app.include_router(zodiac_ai_router, prefix="/api")
 
 
 @app.get("/")
