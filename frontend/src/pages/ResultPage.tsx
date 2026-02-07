@@ -665,6 +665,27 @@ const SectionCard: React.FC<{
   );
 };
 
+// Centralized response mapping function
+const mapCompatibilityResponse = (responseData: any) => {
+  // Handle nested structure: responseData.details contains the actual compatibility data
+  const details = responseData?.details || responseData;
+
+  return {
+    score: details?.score || 0,
+    summary: details?.summary || "Phân tích tương hợp",
+    personality: details?.personality || "Chưa có thông tin",
+    love_style: details?.love_style || "Chưa có thông tin",
+    career: details?.career || "Chưa có thông tin",
+    relationships: details?.relationships || "Chưa có thông tin",
+    advice: details?.advice || "Chưa có thông tin",
+    conflict_points: details?.conflict_points || "Chưa có thông tin",
+    recommended_activities: details?.recommended_activities || [],
+    aspects: details?.aspects || [],
+    ai_analysis: details?.ai_analysis,
+    detailed_reasoning: details?.detailed_reasoning,
+  };
+};
+
 import { useCompatibilityStore } from "../store/useCompatibilityStore";
 
 const SAMPLE_PLANETS: PlanetPosition[] = [
@@ -698,15 +719,31 @@ const ResultPage: React.FC = () => {
     // Extract compatibility data
     const compatibilityData =
       typeof data === "string" ? JSON.parse(data) : data;
-    const score = compatibilityData?.score || 0;
+
+    console.log(
+      "🔍 Raw compatibility data in ResultPage:",
+      JSON.stringify(compatibilityData, null, 2),
+    );
+
+    // Map the actual response schema to frontend expectations
+    const mappedData = mapCompatibilityResponse(compatibilityData);
+
+    // Extract all available data from the mapped response
+    const score = mappedData.score || 0;
     const isCompatible = score >= 50;
-    const reason =
-      compatibilityData?.reason ||
-      "Dựa trên sự tương đồng về nguyên tố, hành tinh và cung hoàng đạo";
+    const summary = mappedData.summary || "Phân tích tương hợp";
+    const personality = mappedData.personality || "Chưa có thông tin";
+    const loveStyle = mappedData.love_style || "Chưa có thông tin";
+    const career = mappedData.career || "Chưa có thông tin";
+    const relationships = mappedData.relationships || "Chưa có thông tin";
+    const advice = mappedData.advice || "Chưa có thông tin";
+    const conflictPoints = mappedData.conflict_points || "Chưa có thông tin";
+    const recommendedActivities = mappedData.recommended_activities || [];
+    const aspects = mappedData.aspects || [];
 
     // Extract AI analysis if available
-    const aiAnalysis = compatibilityData?.ai_analysis;
-    const detailedReasoning = compatibilityData?.detailed_reasoning;
+    const aiAnalysis = mappedData.ai_analysis;
+    const detailedReasoning = mappedData.detailed_reasoning;
 
     return (
       <div className="container section-py">
@@ -732,10 +769,70 @@ const ResultPage: React.FC = () => {
               {isCompatible ? "HỢP NHAU" : "KHÔNG HỢP"}
             </div>
 
-            <div className="compatibility-reason">
-              <h3>Lý do:</h3>
-              <p>{reason}</p>
+            <div className="compatibility-summary">
+              <h3>📊 Tổng Quan</h3>
+              <p>{summary}</p>
             </div>
+
+            <div className="compatibility-sections">
+              <div className="section-card">
+                <h4>👥 Tính Cách</h4>
+                <p>{personality}</p>
+              </div>
+
+              <div className="section-card">
+                <h4>💖 Phong Cách Yêu</h4>
+                <p>{loveStyle}</p>
+              </div>
+
+              <div className="section-card">
+                <h4>💼 Hợp Tác Công Việc</h4>
+                <p>{career}</p>
+              </div>
+
+              <div className="section-card">
+                <h4>🤝 Động Lực Mối Quan Hệ</h4>
+                <p>{relationships}</p>
+              </div>
+            </div>
+
+            <div className="compatibility-details">
+              <div className="detail-card">
+                <h4>💡 Lời Khuyên</h4>
+                <p>{advice}</p>
+              </div>
+
+              <div className="detail-card">
+                <h4>⚠️ Điểm Xung Đột</h4>
+                <p>{conflictPoints}</p>
+              </div>
+            </div>
+
+            {recommendedActivities.length > 0 && (
+              <div className="activities-section">
+                <h4>🎯 Hoạt Động Khuyến Nghị</h4>
+                <ul>
+                  {recommendedActivities.map(
+                    (activity: string, idx: number) => (
+                      <li key={idx}>{activity}</li>
+                    ),
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {aspects.length > 0 && (
+              <div className="aspects-section">
+                <h4>🌟 Các Mặt Trời</h4>
+                <div className="aspects-list">
+                  {aspects.map((aspect: string, idx: number) => (
+                    <div key={idx} className="aspect-item">
+                      {aspect}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {aiAnalysis && (
               <div className="ai-analysis-box">
@@ -764,27 +861,6 @@ const ResultPage: React.FC = () => {
                 </div>
               </div>
             )}
-
-            <div className="compatibility-details">
-              <div className="detail-item">
-                <span className="detail-label">Nguyên tố tương đồng:</span>
-                <span className="detail-value">
-                  {compatibilityData?.elementCompatibility || "Trung bình"}
-                </span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Cung hoàng đạo:</span>
-                <span className="detail-value">
-                  {compatibilityData?.zodiacCompatibility || "Có tiềm năng"}
-                </span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Hành tinh chủ đạo:</span>
-                <span className="detail-value">
-                  {compatibilityData?.planetCompatibility || "Hài hòa"}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -890,51 +966,130 @@ const ResultPage: React.FC = () => {
             border-color: #ef4444;
           }
           
-          .compatibility-reason {
+          .compatibility-summary {
             background: rgba(255,255,255,0.02);
             padding: 20px;
             border-radius: var(--radius-md);
             border-left: 4px solid var(--nebula-purple);
           }
           
-          .compatibility-reason h3 {
+          .compatibility-summary h3 {
             margin: 0 0 10px 0;
             color: var(--white-70);
             font-size: 1.1rem;
           }
           
-          .compatibility-reason p {
+          .compatibility-summary p {
             margin: 0;
             color: var(--white-40);
             line-height: 1.6;
           }
-          
-          .compatibility-details {
+
+          .compatibility-sections {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 16px;
           }
-          
-          .detail-item {
+
+          .section-card {
             background: rgba(255,255,255,0.02);
             padding: 16px;
             border-radius: var(--radius-md);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border: 1px solid var(--white-10);
           }
-          
-          .detail-label {
+
+          .section-card h4 {
+            margin: 0 0 8px 0;
+            color: var(--nebula-purple);
+            font-size: 1rem;
+          }
+
+          .section-card p {
+            margin: 0;
+            color: var(--white-40);
+            line-height: 1.6;
+            font-size: 0.9rem;
+          }
+
+          .compatibility-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+          }
+
+          .detail-card {
+            background: rgba(255,255,255,0.02);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--nebula-blue);
+          }
+
+          .detail-card h4 {
+            margin: 0 0 8px 0;
+            color: var(--nebula-blue);
+            font-size: 1rem;
+          }
+
+          .detail-card p {
+            margin: 0;
+            color: var(--white-40);
+            line-height: 1.6;
+            font-size: 0.9rem;
+          }
+
+          .activities-section {
+            background: rgba(255,255,255,0.02);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--gold-primary);
+          }
+
+          .activities-section h4 {
+            margin: 0 0 12px 0;
+            color: var(--gold-primary);
+            font-size: 1rem;
+          }
+
+          .activities-section ul {
+            margin: 0;
+            padding-left: 20px;
+            color: var(--white-40);
+            line-height: 1.6;
+            font-size: 0.9rem;
+          }
+
+          .activities-section li {
+            margin-bottom: 4px;
+          }
+
+          .aspects-section {
+            background: rgba(255,255,255,0.02);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--nebula-pink);
+          }
+
+          .aspects-section h4 {
+            margin: 0 0 12px 0;
+            color: var(--nebula-pink);
+            font-size: 1rem;
+          }
+
+          .aspects-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+          }
+
+          .aspect-item {
+            background: rgba(255,255,255,0.02);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255,255,255,0.1);
             color: var(--white-40);
             font-size: 0.9rem;
           }
-          
-          .detail-value {
-            color: white;
-            font-weight: 600;
-            font-size: 1rem;
-          }
-          
+
           @keyframes rotate {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
@@ -951,6 +1106,12 @@ const ResultPage: React.FC = () => {
             }
             .score-number {
               font-size: 1.5rem;
+            }
+            .compatibility-sections {
+              grid-template-columns: 1fr;
+            }
+            .compatibility-details {
+              grid-template-columns: 1fr;
             }
           }
 
