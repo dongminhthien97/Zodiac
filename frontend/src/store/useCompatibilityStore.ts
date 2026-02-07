@@ -1,12 +1,12 @@
 import { create } from 'zustand'
 
 interface CompatibilityState {
-  mode: 'compatibility' | 'natal';
+  mode: 'compatibility' | 'natal' | 'standard';
   result: any;
   resultType: string | null;
   loading: boolean;
   error: string | null;
-  setMode: (mode: 'compatibility' | 'natal') => void;
+  setMode: (mode: 'compatibility' | 'natal' | 'standard') => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setResult: (resultType: string, result: any) => void;

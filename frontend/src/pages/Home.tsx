@@ -1,14 +1,14 @@
-import React from 'react'
-import CompatibilityForm from '../components/CompatibilityForm'
-import SingleZodiacForm from '../components/SingleZodiacForm'
-import { useCompatibilityStore } from '../store/useCompatibilityStore'
+import React from "react";
+import CompatibilityForm from "../components/CompatibilityForm";
+import SingleZodiacForm from "../components/SingleZodiacForm";
+import { useCompatibilityStore } from "../store/useCompatibilityStore";
 
 export default function Home() {
-  const loading = useCompatibilityStore((state) => state.loading)
-  const error = useCompatibilityStore((state) => state.error)
-  const setError = useCompatibilityStore((state) => state.setError)
-  const mode = useCompatibilityStore((state) => state.mode)
-  const setMode = useCompatibilityStore((state) => state.setMode)
+  const loading = useCompatibilityStore((state) => state.loading);
+  const error = useCompatibilityStore((state) => state.error);
+  const setError = useCompatibilityStore((state) => state.setError);
+  const mode = useCompatibilityStore((state) => state.mode);
+  const setMode = useCompatibilityStore((state) => state.setMode);
 
   return (
     <div className="home-page section-py">
@@ -19,7 +19,8 @@ export default function Home() {
             Khám phá sự tương hợp và năng lượng vũ trụ của bạn.
           </h1>
           <p className="hero-desc">
-            Nhập thông tin sinh để nhận bản phân tích chi tiết về Mặt Trời, Mặt Trăng, Cung mọc và chỉ số tương hợp.
+            Nhập thông tin sinh để nhận bản phân tích chi tiết về Mặt Trời, Mặt
+            Trăng, Cung mọc và chỉ số tương hợp.
           </p>
         </div>
       </header>
@@ -29,38 +30,53 @@ export default function Home() {
           <h2 className="section-title">Chọn loại tra cứu</h2>
           {loading && <span className="loading-status">Đang tính toán...</span>}
         </div>
-        
+
         <div className="mode-tabs">
           <button
             type="button"
-            className={`btn-outline ${mode === 'compatibility' ? 'active' : ''}`}
-            onClick={() => setMode('compatibility')}
+            className={`btn-outline ${mode === "compatibility" ? "active" : ""}`}
+            onClick={() => setMode("compatibility")}
           >
             Tương hợp 2 người
           </button>
           <button
             type="button"
-            className={`btn-outline ${mode === 'natal' ? 'active' : ''}`}
-            onClick={() => setMode('natal')}
+            className={`btn-outline ${mode === "natal" ? "active" : ""}`}
+            onClick={() => setMode("natal")}
           >
             Tra cứu 1 người
+          </button>
+          <button
+            type="button"
+            className={`btn-outline ${mode === "standard" ? "active" : ""}`}
+            onClick={() => setMode("standard")}
+          >
+            Báo cáo chuẩn
           </button>
         </div>
 
         {error && (
           <div className="error-box glass-card">
             <div className="error-content">
-              <span>{error}</span>
-              <button className="btn-close" onClick={() => setError(null)}>Đóng</button>
+              <span>
+                {typeof error === "string" ? error : JSON.stringify(error)}
+              </span>
+              <button className="btn-close" onClick={() => setError(null)}>
+                Đóng
+              </button>
             </div>
           </div>
         )}
 
         <div className="form-container">
-          {mode === 'compatibility' ? <CompatibilityForm /> : <SingleZodiacForm />}
+          {mode === "compatibility" ? (
+            <CompatibilityForm />
+          ) : (
+            <SingleZodiacForm />
+          )}
         </div>
       </main>
-      
+
       <style>{`
         .hero-content {
           max-width: 800px;
@@ -123,5 +139,5 @@ export default function Home() {
         }
       `}</style>
     </div>
-  )
+  );
 }

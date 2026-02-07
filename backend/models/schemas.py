@@ -184,3 +184,9 @@ class NatalResponse(BaseModel):
     meta: ResponseMeta
     sections: list[ResultSection]
 
+class StandardReportResponse(BaseModel):
+    """Standard format report response - plain text output"""
+    report: str
+    generated_at: str
+    chart_data: NatalChart
+

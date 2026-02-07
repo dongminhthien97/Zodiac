@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import ValidationError
 
-from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse
+from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse, StandardReportResponse
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService
 from supabase_client import get_supabase_client
@@ -76,4 +76,22 @@ def natal(raw_payload: dict = Body(...)) -> NatalResponse:
 
     chart = astrology.build_natal_chart(payload.person, lat, lon)
     return astrology.build_v2_natal_response(chart, payload.person)
+
+@router.post("/natal/standard", response_model=StandardReportResponse)
+def natal_standard(raw_payload: dict = Body(...)) -> StandardReportResponse:
+    """New endpoint for standard format report"""
+    try:
+        payload = NatalRequest.model_validate(raw_payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    astrology = AstrologyService()
+    geocoder = GeocodingService()
+
+    lat, lon, _addr = geocoder.geocode(payload.person.birth_place)
+    if lat is None or lon is None:
+        raise HTTPException(status_code=400, detail="Không thể tìm được vị trí sinh")
+
+    chart = astrology.build_natal_chart(payload.person, lat, lon)
+    return astrology.build_standard_report(chart, payload.person)
 

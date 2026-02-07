@@ -1,5 +1,20 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, AlertTriangle, Lightbulb, Target, Sparkles } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Lightbulb,
+  Target,
+  Sparkles,
+  Calendar,
+  MapPin,
+  Clock,
+  User,
+  Sun,
+  Moon,
+} from "lucide-react";
+import StandardReportDisplay from "../components/StandardReportDisplay";
+import ZodiacAIReportDisplay from "../components/ZodiacAIReportDisplay";
 
 // ==================== Type Definitions ====================
 
@@ -17,6 +32,12 @@ interface AstrologyResultResponse {
     planets?: PlanetPosition[];
   };
   sections: ResultSection[];
+}
+
+interface StandardReportResponse {
+  report: string;
+  generated_at: string;
+  chart_data: any;
 }
 
 interface PlanetPosition {
@@ -51,25 +72,33 @@ interface InsightBlock {
 
 // ==================== Components ====================
 
-const ResultHeader: React.FC<{ meta: AstrologyResultResponse['meta'] }> = ({ meta }) => {
+const ResultHeader: React.FC<{ meta: AstrologyResultResponse["meta"] }> = ({
+  meta,
+}) => {
   const elementIcons = {
-    Fire: '🔥',
-    Earth: '🌿',
-    Air: '🌬️',
-    Water: '💧',
+    Fire: "🔥",
+    Earth: "🌿",
+    Air: "🌬️",
+    Water: "💧",
   };
 
   return (
-    <div className={`result-header-box element-${meta.zodiac.element.toLowerCase()}`}>
+    <div
+      className={`result-header-box element-${meta.zodiac.element.toLowerCase()}`}
+    >
       <div className="header-badge">
-        <span className="element-icon">{elementIcons[meta.zodiac.element]}</span>
+        <span className="element-icon">
+          {elementIcons[meta.zodiac.element]}
+        </span>
         <span className="chart-type">
-          {meta.chartType === 'with_birth_time' ? 'Bản đồ đầy đủ' : 'Bản đồ cơ bản'}
+          {meta.chartType === "with_birth_time"
+            ? "Bản đồ đầy đủ"
+            : "Bản đồ cơ bản"}
         </span>
       </div>
-      
+
       <h1 className="header-title">Hồ Sơ Chiêm Tinh</h1>
-      
+
       <div className="zodiac-info-grid">
         <div className="info-item">
           <label>Mặt Trời</label>
@@ -88,10 +117,8 @@ const ResultHeader: React.FC<{ meta: AstrologyResultResponse['meta'] }> = ({ met
           </div>
         )}
       </div>
-      
-      <div className="element-pill">
-        Nguyên tố: {meta.zodiac.element}
-      </div>
+
+      <div className="element-pill">Nguyên tố: {meta.zodiac.element}</div>
 
       <style>{`
         .result-header-box {
@@ -161,19 +188,27 @@ const ResultHeader: React.FC<{ meta: AstrologyResultResponse['meta'] }> = ({ met
 const InsightItem: React.FC<{ insight: InsightBlock }> = ({ insight }) => {
   const getIcon = () => {
     switch (insight.type) {
-      case 'principle': return <Lightbulb className="icon-p" />;
-      case 'warning': return <AlertTriangle className="icon-w" />;
-      case 'action': return <Target className="icon-a" />;
-      default: return <Sparkles className="icon-d" />;
+      case "principle":
+        return <Lightbulb className="icon-p" />;
+      case "warning":
+        return <AlertTriangle className="icon-w" />;
+      case "action":
+        return <Target className="icon-a" />;
+      default:
+        return <Sparkles className="icon-d" />;
     }
   };
 
   return (
-    <div className={`insight-block type-${insight.type} emphasis-${insight.emphasis || 'low'}`}>
+    <div
+      className={`insight-block type-${insight.type} emphasis-${insight.emphasis || "low"}`}
+    >
       <div className="insight-icon-box">{getIcon()}</div>
       <div className="insight-content">
         <p>{insight.content}</p>
-        {insight.emphasis === 'high' && <span className="tag-high">Quan trọng</span>}
+        {insight.emphasis === "high" && (
+          <span className="tag-high">Quan trọng</span>
+        )}
       </div>
 
       <style>{`
@@ -220,25 +255,45 @@ const InsightItem: React.FC<{ insight: InsightBlock }> = ({ insight }) => {
 // ==================== Astrology Chart Components ====================
 
 const SIGN_COLORS: Record<string, string> = {
-  Aries: '#ff4d4d', Taurus: '#4dff88', Gemini: '#ffff4d', Cancer: '#4db8ff',
-  Leo: '#ff4d4d', Virgo: '#4dff88', Libra: '#ffff4d', Scorpio: '#4db8ff',
-  Sagittarius: '#ff4d4d', Capricorn: '#4dff88', Aquarius: '#ffff4d', Pisces: '#4db8ff',
+  Aries: "#ff4d4d",
+  Taurus: "#4dff88",
+  Gemini: "#ffff4d",
+  Cancer: "#4db8ff",
+  Leo: "#ff4d4d",
+  Virgo: "#4dff88",
+  Libra: "#ffff4d",
+  Scorpio: "#4db8ff",
+  Sagittarius: "#ff4d4d",
+  Capricorn: "#4dff88",
+  Aquarius: "#ffff4d",
+  Pisces: "#4db8ff",
 };
 
 const ZODIAC_SIGNS = [
-  { name: 'Aries', element: 'Fire' }, { name: 'Taurus', element: 'Earth' },
-  { name: 'Gemini', element: 'Air' }, { name: 'Cancer', element: 'Water' },
-  { name: 'Leo', element: 'Fire' }, { name: 'Virgo', element: 'Earth' },
-  { name: 'Libra', element: 'Air' }, { name: 'Scorpio', element: 'Water' },
-  { name: 'Sagittarius', element: 'Fire' }, { name: 'Capricorn', element: 'Earth' },
-  { name: 'Aquarius', element: 'Air' }, { name: 'Pisces', element: 'Water' }
+  { name: "Aries", element: "Fire" },
+  { name: "Taurus", element: "Earth" },
+  { name: "Gemini", element: "Air" },
+  { name: "Cancer", element: "Water" },
+  { name: "Leo", element: "Fire" },
+  { name: "Virgo", element: "Earth" },
+  { name: "Libra", element: "Air" },
+  { name: "Scorpio", element: "Water" },
+  { name: "Sagittarius", element: "Fire" },
+  { name: "Capricorn", element: "Earth" },
+  { name: "Aquarius", element: "Air" },
+  { name: "Pisces", element: "Water" },
 ];
 
 const ELEMENT_COLORS = {
-  Fire: '#ff5f5f', Earth: '#82ca9d', Air: '#8884d8', Water: '#00d1ff'
+  Fire: "#ff5f5f",
+  Earth: "#82ca9d",
+  Air: "#8884d8",
+  Water: "#00d1ff",
 };
 
-const NatalChartSVG: React.FC<{ planets: PlanetPosition[] }> = ({ planets }) => {
+const NatalChartSVG: React.FC<{ planets: PlanetPosition[] }> = ({
+  planets,
+}) => {
   const size = 600;
   const center = size / 2;
   const outerRadius = size * 0.45;
@@ -261,22 +316,44 @@ const NatalChartSVG: React.FC<{ planets: PlanetPosition[] }> = ({ planets }) => 
         </defs>
 
         {/* Outer Decorative Ring */}
-        <circle cx={center} cy={center} r={outerRadius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-        <circle cx={center} cy={center} r={signRingRadius} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" />
+        <circle
+          cx={center}
+          cy={center}
+          r={outerRadius}
+          fill="none"
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth="1"
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={signRingRadius}
+          fill="none"
+          stroke="rgba(255,255,255,0.2)"
+          strokeWidth="2"
+        />
 
         {/* Zodiac Signs Segments */}
         {ZODIAC_SIGNS.map((sign, i) => {
           const startAngle = i * 30 - 180;
           const endAngle = (i + 1) * 30 - 180;
           const midAngle = (startAngle + endAngle) / 2;
-          
-          const x1 = center + outerRadius * Math.cos((startAngle * Math.PI) / 180);
-          const y1 = center + outerRadius * Math.sin((startAngle * Math.PI) / 180);
-          const x2 = center + outerRadius * Math.cos((endAngle * Math.PI) / 180);
-          const y2 = center + outerRadius * Math.sin((endAngle * Math.PI) / 180);
-          
-          const tx = center + (signRingRadius + 18) * Math.cos((midAngle * Math.PI) / 180);
-          const ty = center + (signRingRadius + 18) * Math.sin((midAngle * Math.PI) / 180);
+
+          const x1 =
+            center + outerRadius * Math.cos((startAngle * Math.PI) / 180);
+          const y1 =
+            center + outerRadius * Math.sin((startAngle * Math.PI) / 180);
+          const x2 =
+            center + outerRadius * Math.cos((endAngle * Math.PI) / 180);
+          const y2 =
+            center + outerRadius * Math.sin((endAngle * Math.PI) / 180);
+
+          const tx =
+            center +
+            (signRingRadius + 18) * Math.cos((midAngle * Math.PI) / 180);
+          const ty =
+            center +
+            (signRingRadius + 18) * Math.sin((midAngle * Math.PI) / 180);
 
           return (
             <g key={i}>
@@ -284,14 +361,17 @@ const NatalChartSVG: React.FC<{ planets: PlanetPosition[] }> = ({ planets }) => 
                 d={`M ${center + innerRadius * Math.cos((startAngle * Math.PI) / 180)} ${center + innerRadius * Math.sin((startAngle * Math.PI) / 180)} 
                    L ${x1} ${y1} A ${outerRadius} ${outerRadius} 0 0 1 ${x2} ${y2} 
                    L ${center + innerRadius * Math.cos((endAngle * Math.PI) / 180)} ${center + innerRadius * Math.sin((endAngle * Math.PI) / 180)} Z`}
-                fill={i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent'}
+                fill={i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent"}
                 stroke="rgba(255,255,255,0.05)"
                 strokeWidth="1"
               />
               <text
-                x={tx} y={ty}
+                x={tx}
+                y={ty}
                 className="sign-text"
-                fill={ELEMENT_COLORS[sign.element as keyof typeof ELEMENT_COLORS]}
+                fill={
+                  ELEMENT_COLORS[sign.element as keyof typeof ELEMENT_COLORS]
+                }
                 fontSize="11"
                 fontWeight="700"
                 textAnchor="middle"
@@ -305,46 +385,79 @@ const NatalChartSVG: React.FC<{ planets: PlanetPosition[] }> = ({ planets }) => 
         })}
 
         {/* Aspect Lines (Placeholder logic for visual richness) */}
-        {planets.slice(0, 6).map((p1, i) => (
+        {planets.slice(0, 6).map((p1, i) =>
           planets.slice(i + 1, 8).map((p2, j) => {
             const angle1 = p1.longitude - 180;
             const angle2 = p2.longitude - 180;
-            if (Math.abs(angle1 - angle2) < 30 || Math.abs(angle1 - angle2) > 150) return null;
-            
+            if (
+              Math.abs(angle1 - angle2) < 30 ||
+              Math.abs(angle1 - angle2) > 150
+            )
+              return null;
+
             return (
               <line
                 key={`${i}-${j}`}
-                x1={center + innerRadius * 0.8 * Math.cos((angle1 * Math.PI) / 180)}
-                y1={center + innerRadius * 0.8 * Math.sin((angle1 * Math.PI) / 180)}
-                x2={center + innerRadius * 0.8 * Math.cos((angle2 * Math.PI) / 180)}
-                y2={center + innerRadius * 0.8 * Math.sin((angle2 * Math.PI) / 180)}
+                x1={
+                  center +
+                  innerRadius * 0.8 * Math.cos((angle1 * Math.PI) / 180)
+                }
+                y1={
+                  center +
+                  innerRadius * 0.8 * Math.sin((angle1 * Math.PI) / 180)
+                }
+                x2={
+                  center +
+                  innerRadius * 0.8 * Math.cos((angle2 * Math.PI) / 180)
+                }
+                y2={
+                  center +
+                  innerRadius * 0.8 * Math.sin((angle2 * Math.PI) / 180)
+                }
                 stroke="rgba(139, 92, 246, 0.15)"
                 strokeWidth="1"
               />
             );
-          })
-        ))}
+          }),
+        )}
 
         {/* Planet Markers */}
         {planets.map((planet, idx) => {
           const angle = planet.longitude - 180;
-          const px = center + planetRingRadius * Math.cos((angle * Math.PI) / 180);
-          const py = center + planetRingRadius * Math.sin((angle * Math.PI) / 180);
-          
-          const lx = center + innerRadius * 0.9 * Math.cos((angle * Math.PI) / 180);
-          const ly = center + innerRadius * 0.9 * Math.sin((angle * Math.PI) / 180);
+          const px =
+            center + planetRingRadius * Math.cos((angle * Math.PI) / 180);
+          const py =
+            center + planetRingRadius * Math.sin((angle * Math.PI) / 180);
+
+          const lx =
+            center + innerRadius * 0.9 * Math.cos((angle * Math.PI) / 180);
+          const ly =
+            center + innerRadius * 0.9 * Math.sin((angle * Math.PI) / 180);
 
           return (
             <g key={idx} className="planet-group">
-              <line 
-                x1={px} y1={py} x2={lx} y2={ly} 
-                stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" 
+              <line
+                x1={px}
+                y1={py}
+                x2={lx}
+                y2={ly}
+                stroke="rgba(255,255,255,0.2)"
+                strokeWidth="0.5"
               />
-              <circle cx={px} cy={py} r="4" fill="var(--nebula-purple)" filter="url(#glow)" />
-              <text 
-                x={lx} y={ly} 
+              <circle
+                cx={px}
+                cy={py}
+                r="4"
+                fill="var(--nebula-purple)"
+                filter="url(#glow)"
+              />
+              <text
+                x={lx}
+                y={ly}
                 className="planet-name-label"
-                textAnchor={Math.cos((angle * Math.PI) / 180) > 0 ? 'start' : 'end'} 
+                textAnchor={
+                  Math.cos((angle * Math.PI) / 180) > 0 ? "start" : "end"
+                }
                 alignmentBaseline="middle"
                 fontSize="12"
                 fill="white"
@@ -357,10 +470,17 @@ const NatalChartSVG: React.FC<{ planets: PlanetPosition[] }> = ({ planets }) => 
         })}
 
         {/* Center Void Decoration */}
-        <circle cx={center} cy={center} r={planetRingRadius * 0.8} fill="rgba(0,0,0,0.3)" stroke="rgba(255,255,255,0.05)" />
-        <path 
-           d={`M ${center-20} ${center} L ${center+20} ${center} M ${center} ${center-20} L ${center} ${center+20}`} 
-           stroke="rgba(255,255,255,0.1)" strokeWidth="1"
+        <circle
+          cx={center}
+          cy={center}
+          r={planetRingRadius * 0.8}
+          fill="rgba(0,0,0,0.3)"
+          stroke="rgba(255,255,255,0.05)"
+        />
+        <path
+          d={`M ${center - 20} ${center} L ${center + 20} ${center} M ${center} ${center - 20} L ${center} ${center + 20}`}
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth="1"
         />
       </svg>
 
@@ -394,7 +514,9 @@ const NatalChartSVG: React.FC<{ planets: PlanetPosition[] }> = ({ planets }) => 
   );
 };
 
-const PlanetPositionsList: React.FC<{ planets: PlanetPosition[] }> = ({ planets }) => {
+const PlanetPositionsList: React.FC<{ planets: PlanetPosition[] }> = ({
+  planets,
+}) => {
   return (
     <div className="planet-list-container glass-card">
       <h2 className="section-card-title mb-4">Vị trí các hành tinh</h2>
@@ -412,11 +534,16 @@ const PlanetPositionsList: React.FC<{ planets: PlanetPosition[] }> = ({ planets 
               <tr key={idx}>
                 <td className="planet-name">{planet.name}</td>
                 <td>
-                  <span className="sign-badge" style={{ color: SIGN_COLORS[planet.sign] }}>
+                  <span
+                    className="sign-badge"
+                    style={{ color: SIGN_COLORS[planet.sign] }}
+                  >
                     {planet.sign}
                   </span>
                 </td>
-                <td className="longitude-val">{planet.longitude.toFixed(2)}°</td>
+                <td className="longitude-val">
+                  {planet.longitude.toFixed(2)}°
+                </td>
               </tr>
             ))}
           </tbody>
@@ -463,15 +590,20 @@ const PlanetPositionsList: React.FC<{ planets: PlanetPosition[] }> = ({ planets 
   );
 };
 
-const SectionCard: React.FC<{ section: ResultSection; defaultExpanded?: boolean }> = ({
-  section,
-  defaultExpanded = false,
-}) => {
+const SectionCard: React.FC<{
+  section: ResultSection;
+  defaultExpanded?: boolean;
+}> = ({ section, defaultExpanded = false }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className={`section-collapse glass-card ${isExpanded ? 'is-open' : ''}`}>
-      <button onClick={() => setIsExpanded(!isExpanded)} className="section-trigger">
+    <div
+      className={`section-collapse glass-card ${isExpanded ? "is-open" : ""}`}
+    >
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="section-trigger"
+      >
         <div className="trigger-text">
           <h2 className="section-card-title">{section.title_i18n}</h2>
           <p className="section-summary">{section.summary}</p>
@@ -533,21 +665,21 @@ const SectionCard: React.FC<{ section: ResultSection; defaultExpanded?: boolean 
   );
 };
 
-import { useCompatibilityStore } from '../store/useCompatibilityStore';
+import { useCompatibilityStore } from "../store/useCompatibilityStore";
 
 const SAMPLE_PLANETS: PlanetPosition[] = [
-  { name: 'Mặt Trời', sign: 'Libra', longitude: 189.78 },
-  { name: 'Mặt Trăng', sign: 'Libra', longitude: 203.50 },
-  { name: 'Sao Thủy', sign: 'Libra', longitude: 181.30 },
-  { name: 'Sao Kim', sign: 'Scorpio', longitude: 233.94 },
-  { name: 'Sao Hỏa', sign: 'Sagittarius', longitude: 242.82 },
-  { name: 'Sao Mộc', sign: 'Aquarius', longitude: 312.14 },
-  { name: 'Sao Thổ', sign: 'Aries', longitude: 17.48 },
-  { name: 'Thiên Vương', sign: 'Aquarius', longitude: 304.79 },
-  { name: 'Hải Vương', sign: 'Capricorn', longitude: 297.19 },
-  { name: 'Diêm Vương', sign: 'Sagittarius', longitude: 243.52 },
-  { name: 'Nút Bắc', sign: 'Virgo', longitude: 168.49 },
-  { name: 'Chiron', sign: 'Scorpio', longitude: 213.69 },
+  { name: "Mặt Trời", sign: "Libra", longitude: 189.78 },
+  { name: "Mặt Trăng", sign: "Libra", longitude: 203.5 },
+  { name: "Sao Thủy", sign: "Libra", longitude: 181.3 },
+  { name: "Sao Kim", sign: "Scorpio", longitude: 233.94 },
+  { name: "Sao Hỏa", sign: "Sagittarius", longitude: 242.82 },
+  { name: "Sao Mộc", sign: "Aquarius", longitude: 312.14 },
+  { name: "Sao Thổ", sign: "Aries", longitude: 17.48 },
+  { name: "Thiên Vương", sign: "Aquarius", longitude: 304.79 },
+  { name: "Hải Vương", sign: "Capricorn", longitude: 297.19 },
+  { name: "Diêm Vương", sign: "Sagittarius", longitude: 243.52 },
+  { name: "Nút Bắc", sign: "Virgo", longitude: 168.49 },
+  { name: "Chiron", sign: "Scorpio", longitude: 213.69 },
 ];
 
 const ResultPage: React.FC = () => {
@@ -557,10 +689,17 @@ const ResultPage: React.FC = () => {
 
   if (!data) return null;
 
-  if (resultType === 'compatibility' || !data.sections || !Array.isArray(data.sections)) {
+  // Handle compatibility results
+  if (
+    resultType === "compatibility" ||
+    !data.sections ||
+    !Array.isArray(data.sections)
+  ) {
     return (
       <div className="container section-py">
-        <button className="btn-back" onClick={reset}>← Quay lại</button>
+        <button className="btn-back" onClick={reset}>
+          ← Quay lại
+        </button>
         <div className="glass-card">
           <h1 className="title-gradient">Kết quả tương hợp</h1>
           <div className="data-display">
@@ -591,13 +730,53 @@ const ResultPage: React.FC = () => {
     );
   }
 
+  // Handle Zodiac AI reports
+  if (resultType === "zodiac_ai" && data.report) {
+    const zodiacAIdata = data as any;
+    return (
+      <div className="container section-py">
+        <button className="btn-back" onClick={reset}>
+          ← TRỞ VỀ TRANG CHỦ
+        </button>
+
+        <ZodiacAIReportDisplay
+          report={zodiacAIdata.report}
+          chartData={zodiacAIdata.chart_data}
+          generatedAt={zodiacAIdata.generated_at}
+          placements={zodiacAIdata.placements}
+        />
+      </div>
+    );
+  }
+
+  // Handle standard format reports
+  if (resultType === "standard" && data.report) {
+    const standardData = data as StandardReportResponse;
+    return (
+      <div className="container section-py">
+        <button className="btn-back" onClick={reset}>
+          ← TRỞ VỀ TRANG CHỦ
+        </button>
+
+        <StandardReportDisplay
+          report={standardData.report}
+          chartData={standardData.chart_data}
+          generatedAt={standardData.generated_at}
+        />
+      </div>
+    );
+  }
+
+  // Handle traditional astrology results
   const typedData = data as AstrologyResultResponse;
   const planets = typedData.meta.planets || SAMPLE_PLANETS;
 
   return (
     <div className="container section-py">
-      <button className="btn-back" onClick={reset}>← TRỞ VỀ TRANG CHỦ</button>
-      
+      <button className="btn-back" onClick={reset}>
+        ← TRỞ VỀ TRANG CHỦ
+      </button>
+
       <ResultHeader meta={typedData.meta} />
 
       <div className="chart-grid">
@@ -607,14 +786,22 @@ const ResultPage: React.FC = () => {
 
       <div className="sections-container">
         {typedData.sections.map((section: ResultSection, index: number) => (
-          <SectionCard key={section.id || index} section={section} defaultExpanded={index === 0} />
+          <SectionCard
+            key={section.id || index}
+            section={section}
+            defaultExpanded={index === 0}
+          />
         ))}
       </div>
 
       <div className="result-footer">
         <p>
-          Phân tích dựa trên {typedData.meta.chartType === 'with_birth_time' ? 'thông tin đầy đủ' : 'thông tin cơ bản'}.
-          Kết quả mang tính tham khảo và phản ánh xu hướng năng lượng chiêm tinh.
+          Phân tích dựa trên{" "}
+          {typedData.meta.chartType === "with_birth_time"
+            ? "thông tin đầy đủ"
+            : "thông tin cơ bản"}
+          . Kết quả mang tính tham khảo và phản ánh xu hướng năng lượng chiêm
+          tinh.
         </p>
       </div>
 
