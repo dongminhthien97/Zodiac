@@ -11,10 +11,9 @@ class BirthInfo(BaseModel):
     name: Optional[str] = Field(default=None, max_length=80)
     gender: str = Field(default="other")
     birth_date: str = Field(..., description="YYYY-MM-DD")
-    birth_time: Optional[str] = Field(default=None, description="HH:MM (24h)")
+    birth_time: Optional[str] = Field(default=None, description="HH:MM (24h) or null for unknown")
     time_unknown: bool = Field(default=False)
     birth_place: str = Field(..., description="City, Country")
-
 
     @field_validator("gender")
     @classmethod
@@ -37,6 +36,14 @@ class BirthInfo(BaseModel):
             return v
         if len(v) != 5 or v[2] != ":":
             raise ValueError("birth_time must be in HH:MM format")
+        return v
+
+    @field_validator("time_unknown")
+    @classmethod
+    def validate_time_unknown(cls, v: bool, values) -> bool:
+        # If birth_time is None, automatically set time_unknown to True
+        if v is False and values.data.get("birth_time") is None:
+            return True
         return v
 
 

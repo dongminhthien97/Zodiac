@@ -96,6 +96,7 @@ def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
 
 @router.post("/natal", response_model=NatalResponse)
 def natal(raw_payload: dict = Body(...)) -> NatalResponse:
+    """Generate natal chart with unknown birth time support"""
     try:
         payload = NatalRequest.model_validate(raw_payload)
     except ValidationError as exc:
@@ -103,6 +104,12 @@ def natal(raw_payload: dict = Body(...)) -> NatalResponse:
 
     astrology = AstrologyService()
     geocoder = GeocodingService()
+
+    # Handle unknown birth time
+    if payload.person.birth_time is None or payload.person.time_unknown:
+        # Default to noon for unknown birth time
+        payload.person.birth_time = "12:00"
+        payload.person.time_unknown = True
 
     lat, lon, _addr = geocoder.geocode(payload.person.birth_place)
     if lat is None or lon is None:

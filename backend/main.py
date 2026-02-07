@@ -8,14 +8,22 @@ from routers.astrology import router as astrology_router
 from routers.chart import router as chart_router
 from routers.zodiac_ai import router as zodiac_ai_router
 
+# Configure logging
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "DEBUG"))
+app = FastAPI(
+    title="Zodiac Compatibility Checker",
+    version="0.1.0",
+    description="API for astrology compatibility analysis and natal chart generation"
+)
 
-app = FastAPI(title="Zodiac Compatibility Checker", version="0.1.0")
-
+# CORS configuration
 raw_origins = os.getenv(
     "CORS_ALLOW_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
 )
 allow_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 allow_credentials = os.getenv("CORS_ALLOW_CREDENTIALS", "false").lower() == "true"
@@ -31,11 +39,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount routers
 app.include_router(astrology_router, prefix="/api")
 app.include_router(chart_router, prefix="/api")
 app.include_router(zodiac_ai_router, prefix="/api")
 
-
 @app.get("/")
 def healthcheck() -> dict:
-    return {"status": "ok", "service": "zodiac-compatibility-checker"}
+    """Health check endpoint for monitoring and load balancers"""
+    return {"status": "ok", "service": "zodiac-compatibility-checker", "version": "0.1.0"}
+
+@app.get("/health")
+def health() -> dict:
+    """Alternative health check endpoint"""
+    return {"status": "healthy", "service": "zodiac-compatibility-checker"}
