@@ -46,13 +46,6 @@ export default function Home() {
           >
             Tra cứu 1 người
           </button>
-          <button
-            type="button"
-            className={`btn-outline ${mode === "standard" ? "active" : ""}`}
-            onClick={() => setMode("standard")}
-          >
-            Báo cáo chuẩn
-          </button>
         </div>
 
         {error && (
