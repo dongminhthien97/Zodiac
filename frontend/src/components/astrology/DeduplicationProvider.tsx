@@ -36,13 +36,13 @@ export const DeduplicationProvider = ({ children, onDuplicateDetected }: Dedupli
 
     const isRendered = useCallback((text: string) => {
         if (!text) return false
-        const hash = stableHash(text)
+        const hash = stableHash(text).toString()
         return renderedHashes.current.has(hash)
     }, [])
 
     const trackContent = useCallback((text: string) => {
         if (!text) return false
-        const hash = stableHash(text)
+        const hash = stableHash(text).toString()
 
         if (renderedHashes.current.has(hash)) {
             // Duplicate detected!

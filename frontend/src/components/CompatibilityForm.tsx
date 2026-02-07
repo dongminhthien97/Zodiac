@@ -1,11 +1,8 @@
 import React, { useState } from 'react'
-import { Button } from './ui/button.tsx'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card.tsx'
-import { Input } from './ui/input.tsx'
-import { Select } from './ui/select.tsx'
 import { fetchCompatibility } from '../services/api'
 import { useCompatibilityStore } from '../store/useCompatibilityStore'
 import { buildBirthPlace, COUNTRY_CITY_OPTIONS, DEFAULT_COUNTRY, getDefaultCity } from '../data/locations'
+import { Sparkles, Heart } from 'lucide-react'
 
 interface PersonData {
   name: string;
@@ -55,79 +52,86 @@ function PersonForm({ title, person, onChange }: { title: string; person: Person
   }
 
   return (
-    <Card className="bg-white/3">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4">
-          <div>
-            <label className="text-xs uppercase tracking-wide text-white/60">Tên (không bắt buộc)</label>
-            <Input
-              value={person.name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, name: e.target.value })}
-              placeholder="Ví dụ: Linh"
+    <div className="glass-card person-card">
+      <h3 className="card-title">
+        <Sparkles className="icon-nebula" />
+        {title}
+      </h3>
+      
+      <div className="form-grid">
+        <div className="form-field">
+          <label>Tên (Biệt danh)</label>
+          <input
+            className="glass-input"
+            value={person.name}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, name: e.target.value })}
+            placeholder="Nhập tên..."
+          />
+        </div>
+
+        <div className="form-field">
+          <label>Giới tính</label>
+          <select
+            className="glass-input"
+            value={person.gender}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange({ ...person, gender: e.target.value })}
+          >
+            <option value="female">Nữ</option>
+            <option value="male">Nam</option>
+            <option value="other">Khác</option>
+          </select>
+        </div>
+
+        <div className="form-row">
+          <div className="form-field">
+            <label>Ngày sinh</label>
+            <input
+              type="date"
+              className="glass-input"
+              value={person.birth_date}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, birth_date: e.target.value })}
             />
           </div>
-          <div>
-            <label className="text-xs uppercase tracking-wide text-white/60">Giới tính</label>
-            <Select
-              value={person.gender}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange({ ...person, gender: e.target.value })}
-            >
-              <option value="female">Nữ</option>
-              <option value="male">Nam</option>
-              <option value="other">Khác</option>
-            </Select>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-xs uppercase tracking-wide text-white/60">Ngày sinh</label>
-              <Input
-                type="date"
-                value={person.birth_date}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, birth_date: e.target.value })}
+          <div className="form-field">
+            <label>Giờ sinh</label>
+            <input
+              type="time"
+              className="glass-input"
+              value={person.birth_time}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, birth_time: e.target.value })}
+              disabled={person.time_unknown}
+            />
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={person.time_unknown}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, time_unknown: e.target.checked })}
               />
-            </div>
-            <div>
-              <label className="text-xs uppercase tracking-wide text-white/60">Giờ sinh</label>
-              <Input
-                type="time"
-                value={person.birth_time}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, birth_time: e.target.value })}
-                disabled={person.time_unknown}
-              />
-              <label className="mt-2 flex items-center gap-2 text-xs text-white/60">
-                <input
-                  type="checkbox"
-                  checked={person.time_unknown}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, time_unknown: e.target.checked })}
-                />
-                Không rõ giờ sinh
-              </label>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-xs uppercase tracking-wide text-white/60">Quốc gia</label>
-              <Select value={person.country} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCountry(e.target.value)}>
-                {countries.map((country) => (
-                  <option key={country} value={country}>{country}</option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs uppercase tracking-wide text-white/60">Thành phố</label>
-              <Select value={person.city} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCity(e.target.value)}>
-                {cityOptions.map((city: string) => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </Select>
-            </div>
+              <span>Không rõ giờ sinh</span>
+            </label>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="form-row">
+          <div className="form-field">
+            <label>Quốc gia</label>
+            <select className="glass-input" value={person.country} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCountry(e.target.value)}>
+              {countries.map((country) => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label>Thành phố</label>
+            <select className="glass-input" value={person.city} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCity(e.target.value)}>
+              {cityOptions.map((city: string) => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -169,14 +173,146 @@ export default function CompatibilityForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PersonForm title="Người A" person={personA} onChange={setPersonA} />
-        <PersonForm title="Người B" person={personB} onChange={setPersonB} />
+    <div className="compatibility-form-wrapper">
+      <div className="form-header">
+        <h2 className="title-gradient">Kết Nối Vì Sao</h2>
+        <p className="desc">
+          Khám phá sự hòa hợp giữa hai tâm hồn thông qua lăng kính chiêm tinh học.
+        </p>
       </div>
-      <div className="flex justify-center">
-        <Button type="submit" variant="cute" className="px-10">Xem độ tương hợp</Button>
-      </div>
-    </form>
+      
+      <form onSubmit={handleSubmit} className="comp-form">
+        <div className="comp-grid">
+           <div className="connector-overlay">
+              <div className="heart-circle">
+                <Heart className="icon-heart" />
+              </div>
+           </div>
+
+          <PersonForm title="Bạn" person={personA} onChange={setPersonA} />
+          <PersonForm title="Đối phương" person={personB} onChange={setPersonB} />
+        </div>
+        
+        <div className="submit-area">
+          <button type="submit" className="btn-cosmic main-submit">
+            Xem Kết Quả Tương Hợp
+          </button>
+        </div>
+      </form>
+
+      <style>{`
+        .compatibility-form-wrapper {
+          padding: 20px 0;
+        }
+        .form-header {
+          text-align: center;
+          margin-bottom: 50px;
+        }
+        .title-gradient {
+          font-size: 3rem;
+          margin-bottom: 12px;
+          background: linear-gradient(135deg, var(--gold-primary), var(--nebula-pink));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        .desc {
+          color: var(--white-70);
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        .comp-form {
+          position: relative;
+        }
+        .comp-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 40px;
+          position: relative;
+        }
+        .submit-area {
+          display: flex;
+          justify-content: center;
+          margin-top: 50px;
+        }
+        .main-submit {
+          min-width: 300px;
+          font-size: 1.1rem;
+        }
+        .card-title {
+          font-size: 1.5rem;
+          margin-bottom: 24px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          color: var(--gold-primary);
+        }
+        .icon-nebula {
+          color: var(--nebula-purple);
+        }
+        .form-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .form-field {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .form-field label {
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: var(--white-40);
+        }
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 8px;
+          font-size: 12px;
+          color: var(--white-70);
+          cursor: pointer;
+        }
+        .connector-overlay {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 5;
+        }
+        .heart-circle {
+          width: 50px;
+          height: 50px;
+          background: var(--space-ink);
+          border: 1px solid var(--white-10);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 20px var(--nebula-purple-glow);
+        }
+        .icon-heart {
+          color: var(--nebula-pink);
+          fill: rgba(217, 70, 239, 0.2);
+        }
+
+        @media (max-width: 992px) {
+          .comp-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+          }
+          .connector-overlay {
+            display: none;
+          }
+        }
+      `}</style>
+    </div>
   )
 }
