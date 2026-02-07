@@ -101,8 +101,13 @@ class ZodiacAIService:
             
             logger.info(f"Generating new Zodiac AI report for: datetime={datetime_utc}, lat={lat}, lon={lon}")
             
-            # Get planetary positions
-            chart_data = self.ephemeris_service.planet_positions(datetime_utc, lat, lon)
+            # Get planetary positions with error handling
+            try:
+                chart_data = self.ephemeris_service.planet_positions(datetime_utc, lat, lon)
+            except Exception as e:
+                logger.warning(f"Ephemeris service failed for {datetime_utc}, {lat}, {lon}: {e}")
+                # Return fallback report
+                return self._generate_fallback_report(datetime_utc, lat, lon)
             
             # Convert to our format
             placements = self._parse_planetary_data(chart_data)
@@ -143,7 +148,8 @@ class ZodiacAIService:
             
         except Exception as e:
             logger.error(f"Error generating Zodiac AI report: {e}")
-            raise
+            # Return fallback report instead of raising exception
+            return self._generate_fallback_report(datetime_utc, lat, lon)
 
     def _parse_planetary_data(self, chart_data: List[Any]) -> List[PlanetPlacement]:
         """Parse ephemeris data into structured planet placements"""
@@ -415,3 +421,23 @@ class ZodiacAIService:
         cache_key = hashlib.md5(key_string.encode()).hexdigest()
         
         return cache_key
+
+    def _generate_fallback_report(self, datetime_utc: str, lat: float, lon: float) -> Dict[str, Any]:
+        """Generate a fallback report when external services fail"""
+        logger.warning(f"Generating fallback report for: datetime={datetime_utc}, lat={lat}, lon={lon}")
+        
+        # Create a basic fallback report
+        fallback_report = {
+            "report": "⚠️ **Báo cáo dự phòng**\n\n"
+                     "Do hệ thống đang gặp sự cố kỹ thuật, chúng tôi cung cấp báo cáo dự phòng.\n\n"
+                     "**Tổng quan:**\n"
+                     "Dựa trên thời gian và vị trí của bạn, đây là một bản phân tích cơ bản.\n\n"
+                     "**Lưu ý:** Đây là báo cáo dự phòng, vui lòng thử lại sau để nhận báo cáo đầy đủ.\n\n"
+                     "---\n\n"
+                     "**Báo cáo được tạo bởi hệ thống Zodiac AI. Kết quả mang tính chất tham khảo.**",
+            "generated_at": datetime.utcnow().isoformat(),
+            "chart_data": {},
+            "placements": []
+        }
+        
+        return fallback_report

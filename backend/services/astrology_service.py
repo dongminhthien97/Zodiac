@@ -74,17 +74,23 @@ class AstrologyService:
     def build_natal_chart(
         self, person: BirthInfo, lat: Optional[float], lon: Optional[float], tz_name: Optional[str] = None
     ) -> NatalChart:
-        """Build natal chart with fault-tolerant chart generation"""
+        """Build natal chart with fault-tolerant chart generation and unknown birth time support"""
         self._logger.debug(f"Building natal chart for: {person.name} at {lat}, {lon}")
         
         try:
             sun_sign = self._calculate_sun_sign(person.birth_date)
-            time_str = person.birth_time if (person.birth_time and not person.time_unknown) else "12:00"
+            
+            # Handle unknown birth time
+            if person.birth_time is None or person.time_unknown:
+                time_str = "12:00"  # Default to noon
+                person.time_unknown = True
+            else:
+                time_str = person.birth_time
 
             moon_sign, ascendant, planets, svg_chart = None, None, [], None
 
-            # Only attempt Kerykeion if coordinates are available
-            if KERYKEION_AVAILABLE and lat is not None and lon is not None:
+            # Only attempt Kerykeion if coordinates are available and time is known
+            if KERYKEION_AVAILABLE and lat is not None and lon is not None and not person.time_unknown:
                 try:
                     moon_sign, ascendant, planets, svg_chart = self._kerykeion_chart(person, time_str, lat, lon)
                     self._logger.info(f"Kerykeion chart generation successful for {person.name}")
