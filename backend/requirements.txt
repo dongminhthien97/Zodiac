@@ -6,3 +6,7 @@ geopy==2.4.1
 supabase==2.6.0
 python-dotenv==1.0.1
 httpx==0.27.0
+
+# Ephemeris & charts
+pyswisseph==2.10.3.2
+reportlab>=4.0.0
