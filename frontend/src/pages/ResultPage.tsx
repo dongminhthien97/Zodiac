@@ -695,36 +695,232 @@ const ResultPage: React.FC = () => {
     !data.sections ||
     !Array.isArray(data.sections)
   ) {
+    // Extract compatibility data
+    const compatibilityData =
+      typeof data === "string" ? JSON.parse(data) : data;
+    const score = compatibilityData?.score || 0;
+    const isCompatible = score >= 50;
+    const reason =
+      compatibilityData?.reason ||
+      "Dựa trên sự tương đồng về nguyên tố, hành tinh và cung hoàng đạo";
+
     return (
       <div className="container section-py">
         <button className="btn-back" onClick={reset}>
           ← Quay lại
         </button>
-        <div className="glass-card">
-          <h1 className="title-gradient">Kết quả tương hợp</h1>
-          <div className="data-display">
-            <pre>{JSON.stringify(data, null, 2)}</pre>
+
+        <div className="compatibility-result-box">
+          <div className="compatibility-header">
+            <h1 className="title-gradient">TƯƠNG HỢP HAI NGƯỜI</h1>
+            <div className="compatibility-score">
+              <div className="score-circle">
+                <span className="score-number">{Math.round(score)}%</span>
+                <span className="score-label">Độ hợp nhau</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="compatibility-result">
+            <div
+              className={`result-badge ${isCompatible ? "compatible" : "not-compatible"}`}
+            >
+              {isCompatible ? "HỢP NHAU" : "KHÔNG HỢP"}
+            </div>
+
+            <div className="compatibility-reason">
+              <h3>Lý do:</h3>
+              <p>{reason}</p>
+            </div>
+
+            <div className="compatibility-details">
+              <div className="detail-item">
+                <span className="detail-label">Nguyên tố tương đồng:</span>
+                <span className="detail-value">
+                  {compatibilityData?.elementCompatibility || "Trung bình"}
+                </span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Cung hoàng đạo:</span>
+                <span className="detail-value">
+                  {compatibilityData?.zodiacCompatibility || "Có tiềm năng"}
+                </span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Hành tinh chủ đạo:</span>
+                <span className="detail-value">
+                  {compatibilityData?.planetCompatibility || "Hài hòa"}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
+
         <style>{`
-          .btn-back {
-            background: none;
-            border: none;
-            color: var(--white-70);
-            cursor: pointer;
-            margin-bottom: 30px;
-            font-size: 1.1rem;
-            font-family: var(--font-display);
-          }
-          .btn-back:hover { color: white; }
-          .data-display {
-            background: rgba(0,0,0,0.3);
-            padding: 24px;
-            border-radius: var(--radius-md);
-            overflow-x: auto;
+          .compatibility-result-box {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
             border: 1px solid var(--white-10);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
           }
-          .data-display pre { color: var(--white-70); font-size: 14px; }
+          
+          .compatibility-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+          }
+          
+          .title-gradient {
+            font-size: 2.5rem;
+            margin: 0;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+          
+          .compatibility-score {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          
+          .score-circle {
+            width: 120px;
+            height: 120px;
+            border: 4px solid var(--white-20);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+          }
+          
+          .score-circle::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 4px solid transparent;
+            border-top-color: var(--nebula-purple);
+            border-radius: 50%;
+            animation: rotate 2s linear infinite;
+            opacity: 0.5;
+          }
+          
+          .score-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: white;
+            z-index: 1;
+          }
+          
+          .score-label {
+            font-size: 0.8rem;
+            color: var(--white-40);
+            text-transform: uppercase;
+            z-index: 1;
+          }
+          
+          .compatibility-result {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+          }
+          
+          .result-badge {
+            font-size: 1.5rem;
+            font-weight: 800;
+            padding: 12px 24px;
+            border-radius: 30px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border: 2px solid var(--white-20);
+          }
+          
+          .compatible {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            border-color: #22c55e;
+          }
+          
+          .not-compatible {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border-color: #ef4444;
+          }
+          
+          .compatibility-reason {
+            background: rgba(255,255,255,0.02);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--nebula-purple);
+          }
+          
+          .compatibility-reason h3 {
+            margin: 0 0 10px 0;
+            color: var(--white-70);
+            font-size: 1.1rem;
+          }
+          
+          .compatibility-reason p {
+            margin: 0;
+            color: var(--white-40);
+            line-height: 1.6;
+          }
+          
+          .compatibility-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+          }
+          
+          .detail-item {
+            background: rgba(255,255,255,0.02);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          
+          .detail-label {
+            color: var(--white-40);
+            font-size: 0.9rem;
+          }
+          
+          .detail-value {
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+          }
+          
+          @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          
+          @media (max-width: 768px) {
+            .compatibility-header {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            .score-circle {
+              width: 100px;
+              height: 100px;
+            }
+            .score-number {
+              font-size: 1.5rem;
+            }
+          }
         `}</style>
       </div>
     );
@@ -782,16 +978,6 @@ const ResultPage: React.FC = () => {
       <div className="chart-grid">
         <NatalChartSVG planets={planets} />
         <PlanetPositionsList planets={planets} />
-      </div>
-
-      <div className="sections-container">
-        {typedData.sections.map((section: ResultSection, index: number) => (
-          <SectionCard
-            key={section.id || index}
-            section={section}
-            defaultExpanded={index === 0}
-          />
-        ))}
       </div>
 
       <div className="result-footer">
