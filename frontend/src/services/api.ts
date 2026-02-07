@@ -5,8 +5,9 @@ const api = axios.create({
 })
 
 export const fetchCompatibility = async (payload: any) => {
-  const { data } = await api.post('/api/compatibility', payload)
-  return data
+  const response = await api.post('/api/compatibility', payload)
+  console.log('🔍 Raw compatibility API response:', JSON.stringify(response.data, null, 2))
+  return response.data
 }
 
 export const fetchNatal = async (payload: any) => {
