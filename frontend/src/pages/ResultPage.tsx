@@ -704,6 +704,10 @@ const ResultPage: React.FC = () => {
       compatibilityData?.reason ||
       "Dựa trên sự tương đồng về nguyên tố, hành tinh và cung hoàng đạo";
 
+    // Extract AI analysis if available
+    const aiAnalysis = compatibilityData?.ai_analysis;
+    const detailedReasoning = compatibilityData?.detailed_reasoning;
+
     return (
       <div className="container section-py">
         <button className="btn-back" onClick={reset}>
@@ -732,6 +736,34 @@ const ResultPage: React.FC = () => {
               <h3>Lý do:</h3>
               <p>{reason}</p>
             </div>
+
+            {aiAnalysis && (
+              <div className="ai-analysis-box">
+                <h3>🤖 Phân tích AI Tối Ưu</h3>
+                <div className="ai-analysis-content">
+                  {aiAnalysis.split("\n").map((line: string, idx: number) => (
+                    <p key={idx} className="ai-analysis-line">
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {detailedReasoning && (
+              <div className="detailed-reasoning-box">
+                <h3>🔍 Lý Do Chi Tiết</h3>
+                <div className="reasoning-content">
+                  {detailedReasoning
+                    .split("\n")
+                    .map((line: string, idx: number) => (
+                      <p key={idx} className="reasoning-line">
+                        {line}
+                      </p>
+                    ))}
+                </div>
+              </div>
+            )}
 
             <div className="compatibility-details">
               <div className="detail-item">
@@ -920,6 +952,69 @@ const ResultPage: React.FC = () => {
             .score-number {
               font-size: 1.5rem;
             }
+          }
+
+          .ai-analysis-box {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid var(--nebula-purple);
+          }
+
+          .ai-analysis-box h3 {
+            margin: 0 0 12px 0;
+            color: var(--nebula-purple);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+
+          .ai-analysis-content {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+
+          .ai-analysis-line {
+            margin: 8px 0;
+            color: var(--white-40);
+            line-height: 1.6;
+            font-style: italic;
+          }
+
+          .detailed-reasoning-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid var(--nebula-blue);
+          }
+
+          .detailed-reasoning-box h3 {
+            margin: 0 0 12px 0;
+            color: var(--nebula-blue);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+
+          .reasoning-content {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+
+          .reasoning-line {
+            margin: 8px 0;
+            color: var(--white-40);
+            line-height: 1.6;
           }
         `}</style>
       </div>
