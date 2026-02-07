@@ -1,8 +1,13 @@
-import React, { useState } from 'react'
-import { fetchCompatibility } from '../services/api'
-import { useCompatibilityStore } from '../store/useCompatibilityStore'
-import { buildBirthPlace, COUNTRY_CITY_OPTIONS, DEFAULT_COUNTRY, getDefaultCity } from '../data/locations'
-import { Sparkles, Heart } from 'lucide-react'
+import React, { useState } from "react";
+import { fetchCompatibility } from "../services/api";
+import { useCompatibilityStore } from "../store/useCompatibilityStore";
+import {
+  buildBirthPlace,
+  COUNTRY_CITY_OPTIONS,
+  DEFAULT_COUNTRY,
+  getDefaultCity,
+} from "../data/locations";
+import { Sparkles, Heart } from "lucide-react";
 
 interface PersonData {
   name: string;
@@ -19,37 +24,45 @@ const defaultCountry = DEFAULT_COUNTRY;
 const defaultCity = getDefaultCity(defaultCountry);
 
 const defaultPerson: PersonData = {
-  name: '',
-  gender: 'other',
-  birth_date: '',
-  birth_time: '',
+  name: "",
+  gender: "other",
+  birth_date: "",
+  birth_time: "",
   time_unknown: false,
   country: defaultCountry,
   city: defaultCity,
-  birth_place: buildBirthPlace(defaultCountry, defaultCity)
+  birth_place: buildBirthPlace(defaultCountry, defaultCity),
 };
 
-function PersonForm({ title, person, onChange }: { title: string; person: PersonData; onChange: (p: PersonData) => void }) {
+function PersonForm({
+  title,
+  person,
+  onChange,
+}: {
+  title: string;
+  person: PersonData;
+  onChange: (p: PersonData) => void;
+}) {
   const countries = Object.keys(COUNTRY_CITY_OPTIONS);
   const cityOptions = COUNTRY_CITY_OPTIONS[person.country] || [];
 
   const updateCountry = (country: string) => {
-    const city = getDefaultCity(country)
+    const city = getDefaultCity(country);
     onChange({
       ...person,
       country,
       city,
-      birth_place: buildBirthPlace(country, city)
-    })
-  }
+      birth_place: buildBirthPlace(country, city),
+    });
+  };
 
   const updateCity = (city: string) => {
     onChange({
       ...person,
       city,
-      birth_place: buildBirthPlace(person.country, city)
-    })
-  }
+      birth_place: buildBirthPlace(person.country, city),
+    });
+  };
 
   return (
     <div className="glass-card person-card">
@@ -57,14 +70,16 @@ function PersonForm({ title, person, onChange }: { title: string; person: Person
         <Sparkles className="icon-nebula" />
         {title}
       </h3>
-      
+
       <div className="form-grid">
         <div className="form-field">
           <label>Tên (Biệt danh)</label>
           <input
             className="glass-input"
             value={person.name}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, name: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange({ ...person, name: e.target.value })
+            }
             placeholder="Nhập tên..."
           />
         </div>
@@ -74,7 +89,9 @@ function PersonForm({ title, person, onChange }: { title: string; person: Person
           <select
             className="glass-input"
             value={person.gender}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange({ ...person, gender: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              onChange({ ...person, gender: e.target.value })
+            }
           >
             <option value="female">Nữ</option>
             <option value="male">Nam</option>
@@ -89,7 +106,9 @@ function PersonForm({ title, person, onChange }: { title: string; person: Person
               type="date"
               className="glass-input"
               value={person.birth_date}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, birth_date: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange({ ...person, birth_date: e.target.value })
+              }
             />
           </div>
           <div className="form-field">
@@ -98,14 +117,18 @@ function PersonForm({ title, person, onChange }: { title: string; person: Person
               type="time"
               className="glass-input"
               value={person.birth_time}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, birth_time: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange({ ...person, birth_time: e.target.value })
+              }
               disabled={person.time_unknown}
             />
             <label className="checkbox-label">
               <input
                 type="checkbox"
                 checked={person.time_unknown}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...person, time_unknown: e.target.checked })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange({ ...person, time_unknown: e.target.checked })
+                }
               />
               <span>Không rõ giờ sinh</span>
             </label>
@@ -115,24 +138,40 @@ function PersonForm({ title, person, onChange }: { title: string; person: Person
         <div className="form-row">
           <div className="form-field">
             <label>Quốc gia</label>
-            <select className="glass-input" value={person.country} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCountry(e.target.value)}>
+            <select
+              className="glass-input"
+              value={person.country}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                updateCountry(e.target.value)
+              }
+            >
               {countries.map((country) => (
-                <option key={country} value={country}>{country}</option>
+                <option key={country} value={country}>
+                  {country}
+                </option>
               ))}
             </select>
           </div>
           <div className="form-field">
             <label>Thành phố</label>
-            <select className="glass-input" value={person.city} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCity(e.target.value)}>
+            <select
+              className="glass-input"
+              value={person.city}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                updateCity(e.target.value)
+              }
+            >
               {cityOptions.map((city: string) => (
-                <option key={city} value={city}>{city}</option>
+                <option key={city} value={city}>
+                  {city}
+                </option>
               ))}
             </select>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function normalizePerson(person: PersonData) {
@@ -142,57 +181,62 @@ function normalizePerson(person: PersonData) {
     birth_date: person.birth_date,
     birth_time: person.birth_time,
     time_unknown: person.time_unknown,
-    birth_place: person.birth_place
-  }
+    birth_place: person.birth_place,
+  };
 }
 
 export default function CompatibilityForm() {
-  const [personA, setPersonA] = useState(defaultPerson)
-  const [personB, setPersonB] = useState(defaultPerson)
+  const [personA, setPersonA] = useState(defaultPerson);
+  const [personB, setPersonB] = useState(defaultPerson);
 
-  const setLoading = useCompatibilityStore((state) => state.setLoading)
-  const setError = useCompatibilityStore((state) => state.setError)
-  const setResult = useCompatibilityStore((state) => state.setResult)
+  const setLoading = useCompatibilityStore((state) => state.setLoading);
+  const setError = useCompatibilityStore((state) => state.setError);
+  const setResult = useCompatibilityStore((state) => state.setResult);
 
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    setLoading(true)
-    setError(null)
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
 
     try {
       const payload = {
         person_a: normalizePerson(personA),
-        person_b: normalizePerson(personB)
-      }
-      const data = await fetchCompatibility(payload)
-      setResult('compatibility', data)
+        person_b: normalizePerson(personB),
+      };
+      const data = await fetchCompatibility(payload);
+      setResult("compatibility", data);
     } catch (error: any) {
-      setError(error?.response?.data?.detail || 'Đã có lỗi xảy ra')
-      setLoading(false)
+      setError(error?.response?.data?.detail || "Đã có lỗi xảy ra");
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="compatibility-form-wrapper">
       <div className="form-header">
         <h2 className="title-gradient">Kết Nối Vì Sao</h2>
         <p className="desc">
-          Khám phá sự hòa hợp giữa hai tâm hồn thông qua lăng kính chiêm tinh học.
+          Khám phá sự hòa hợp giữa hai tâm hồn thông qua lăng kính chiêm tinh
+          học.
         </p>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="comp-form">
         <div className="comp-grid">
-           <div className="connector-overlay">
-              <div className="heart-circle">
-                <Heart className="icon-heart" />
-              </div>
-           </div>
+          <div className="connector-overlay">
+            <div className="heart-circle">
+              <Heart className="icon-heart" />
+            </div>
+          </div>
 
           <PersonForm title="Bạn" person={personA} onChange={setPersonA} />
-          <PersonForm title="Đối phương" person={personB} onChange={setPersonB} />
+          <PersonForm
+            title="Đối phương"
+            person={personB}
+            onChange={setPersonB}
+          />
         </div>
-        
+
         <div className="submit-area">
           <button type="submit" className="btn-cosmic main-submit">
             Xem Kết Quả Tương Hợp
@@ -314,5 +358,5 @@ export default function CompatibilityForm() {
         }
       `}</style>
     </div>
-  )
+  );
 }
