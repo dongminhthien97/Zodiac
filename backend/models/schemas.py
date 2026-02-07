@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
+from pydantic import RootModel
 
 
 
@@ -52,6 +53,7 @@ class PlanetPosition(BaseModel):
     name: str
     sign: str
     longitude: float
+    degree: float | None = None
 
 
 class NatalChart(BaseModel):
@@ -61,6 +63,42 @@ class NatalChart(BaseModel):
     ascendant: Optional[str]
     planets: list[PlanetPosition]
     svg_chart: Optional[str]
+
+
+# New chart API schemas
+class Location(BaseModel):
+    lat: float
+    lon: float
+
+
+class ChartRequest(BaseModel):
+    date: str = Field(..., description="YYYY-MM-DD")
+    time: Optional[str] = Field(default=None, description="HH:MM or null")
+    timezone: str = Field(..., description="+HH:MM or -HH:MM")
+    location: Location
+    house_system: Optional[str] = Field(default=None, description="whole_sign | placidus | null")
+
+
+class Aspect(BaseModel):
+    body1: str
+    body2: str
+    type: str
+    orb: float
+
+
+class Houses(BaseModel):
+    system: str
+    cusps: list[float]
+    ascendant: float
+    midheaven: float
+
+
+class ChartCoreResponse(BaseModel):
+    mode: str  # NO_HOUSE | WITH_HOUSE
+    planets: dict[str, PlanetPosition]
+    points: dict[str, PlanetPosition]
+    aspects: list[Aspect]
+    houses: Houses | None
 
 
 class CompatibilityDetails(BaseModel):
