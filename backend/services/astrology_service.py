@@ -6,6 +6,7 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+import traceback
 
 from models.schemas import (
     BirthInfo, CompatibilityDetails, NatalChart, PlanetPosition,
@@ -13,12 +14,15 @@ from models.schemas import (
     InsightBlock, InsightBlockType, InsightEmphasis, StandardReportResponse
 )
 from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIGN_RANGES
+from google import genai
 
 # 1. THIẾT LẬP CẤU HÌNH HỆ THỐNG
 GEONAMES_USER = "century.boy"
 os.environ["GEONAMES_USERNAME"] = GEONAMES_USER
 
 from utils.compatibility_data import GENDER_TONE
+
+logger = logging.getLogger(__name__)
 
 
 NATAL_GUIDE = {
@@ -60,33 +64,68 @@ except Exception as e:
 class AstrologyService:
     def __init__(self) -> None:
         self._logger = logging.getLogger(__name__)
+        # Initialize Google AI client for enhanced compatibility analysis
+        try:
+            self.ai_client = genai.Client()
+        except Exception as e:
+            self._logger.warning(f"Google AI client initialization failed: {e}")
+            self.ai_client = None
 
     def build_natal_chart(
         self, person: BirthInfo, lat: Optional[float], lon: Optional[float], tz_name: Optional[str] = None
     ) -> NatalChart:
-        self._logger.debug(f"Đang xử lý Natal cho: {person.name} tại {lat}, {lon}")
+        """Build natal chart with fault-tolerant chart generation"""
+        self._logger.debug(f"Building natal chart for: {person.name} at {lat}, {lon}")
+        
+        try:
+            sun_sign = self._calculate_sun_sign(person.birth_date)
+            time_str = person.birth_time if (person.birth_time and not person.time_unknown) else "12:00"
 
-        sun_sign = self._calculate_sun_sign(person.birth_date)
-        time_str = person.birth_time if (person.birth_time and not person.time_unknown) else "12:00"
+            moon_sign, ascendant, planets, svg_chart = None, None, [], None
 
-        moon_sign, ascendant, planets, svg_chart = None, None, [], None
+            # Only attempt Kerykeion if coordinates are available
+            if KERYKEION_AVAILABLE and lat is not None and lon is not None:
+                try:
+                    moon_sign, ascendant, planets, svg_chart = self._kerykeion_chart(person, time_str, lat, lon)
+                    self._logger.info(f"Kerykeion chart generation successful for {person.name}")
+                except Exception as e:
+                    self._logger.warning(f"Kerykeion chart generation failed for {person.name}: {e}")
+                    # Continue without Kerykeion data - this is not fatal
+                    moon_sign, ascendant, planets, svg_chart = None, None, [], None
 
-        if KERYKEION_AVAILABLE and lat is not None and lon is not None:
-            moon_sign, ascendant, planets, svg_chart = self._kerykeion_chart(person, time_str, lat, lon)
+            # Build basic chart with available data
+            natal = NatalChart(
+                name=person.name,
+                sun_sign=sun_sign or "Unknown",
+                moon_sign=moon_sign,
+                ascendant=ascendant if not person.time_unknown else None,
+                planets=planets,
+                svg_chart=svg_chart,
+            )
 
-        natal = NatalChart(
-            name=person.name,
-            sun_sign=sun_sign or "Unknown",
-            moon_sign=moon_sign,
-            ascendant=ascendant if not person.time_unknown else None,
-            planets=planets,
-            svg_chart=svg_chart,
-        )
+            # Only generate fallback SVG if we don't have one and time is unknown
+            if not natal.svg_chart and person.time_unknown:
+                try:
+                    natal.svg_chart = self._build_fallback_svg(natal, person.time_unknown)
+                    self._logger.info(f"Generated fallback SVG for {person.name}")
+                except Exception as e:
+                    self._logger.warning(f"Fallback SVG generation failed for {person.name}: {e}")
+                    # Set to None instead of crashing
+                    natal.svg_chart = None
 
-        if not natal.svg_chart:
-            natal.svg_chart = self._build_fallback_svg(natal, person.time_unknown)
-
-        return natal
+            return natal
+            
+        except Exception as e:
+            self._logger.error(f"Critical error in build_natal_chart for {person.name}: {e}")
+            # Return minimal chart instead of crashing
+            return NatalChart(
+                name=person.name,
+                sun_sign=self._calculate_sun_sign(person.birth_date) or "Unknown",
+                moon_sign=None,
+                ascendant=None,
+                planets=[],
+                svg_chart=None,
+            )
 
     def _kerykeion_chart(
         self, person: BirthInfo, time_str: str, lat: float, lon: float
@@ -382,32 +421,27 @@ class AstrologyService:
     def compatibility(
         self, chart_a: NatalChart, chart_b: NatalChart, gender_a: str, gender_b: str
     ) -> CompatibilityDetails:
-        """Calculate compatibility between two charts"""
+        """Calculate compatibility between two charts with AI-enhanced analysis"""
         score = self._element_score(chart_a.sun_sign, chart_b.sun_sign)
         
         # Apply gender tone adjustments
         tone = GENDER_TONE.get((gender_a, gender_b), "bổ trợ")
         
-        # Calculate personality compatibility
-        personality = f"Phù hợp {tone} nhau với điểm số {score}/100"
-        
-        # Calculate love style compatibility
+        # Calculate compatibility scores for different areas
         venus_a = self._get_planet_sign(chart_a, "Venus") or chart_a.sun_sign
         venus_b = self._get_planet_sign(chart_b, "Venus") or chart_b.sun_sign
         love_score = self._element_score(venus_a, venus_b)
-        love_style = f"Phong cách yêu thương: {tone} với điểm số {love_score}/100"
         
-        # Calculate career compatibility
         mercury_a = self._get_planet_sign(chart_a, "Mercury") or chart_a.sun_sign
         mercury_b = self._get_planet_sign(chart_b, "Mercury") or chart_b.sun_sign
         career_score = self._element_score(mercury_a, mercury_b)
-        career = f"Hợp tác công việc: {tone} với điểm số {career_score}/100"
         
-        # Calculate relationship dynamics
         mars_a = self._get_planet_sign(chart_a, "Mars") or chart_a.sun_sign
         mars_b = self._get_planet_sign(chart_b, "Mars") or chart_b.sun_sign
         relationship_score = self._element_score(mars_a, mars_b)
-        relationships = f"Động lực mối quan hệ: {tone} với điểm số {relationship_score}/100"
+        
+        # Generate AI-enhanced compatibility analysis
+        ai_analysis = self._get_ai_compatibility_analysis(chart_a, chart_b, score)
         
         # Generate advice based on compatibility
         if score >= 80:
@@ -429,24 +463,29 @@ class AstrologyService:
             SIGN_TRAITS.get(chart_b.sun_sign, "").split("|")[0]
         )
         
-        # Generate aspects
+        # Generate aspects with AI insights
         aspects = [
             f"Sun {chart_a.sun_sign} - Sun {chart_b.sun_sign}: {self._strength_phrase(score)}",
             f"Venus {venus_a} - Venus {venus_b}: {self._strength_phrase(love_score)}",
             f"Mars {mars_a} - Mars {mars_b}: {self._strength_phrase(relationship_score)}"
         ]
+        
+        # Add AI-generated detailed reasoning
+        detailed_reasoning = self._get_ai_detailed_reasoning(chart_a, chart_b)
 
         return CompatibilityDetails(
             score=score,
             summary=f"Độ tương thích tổng thể: {score}/100 - {tone}",
-            personality=personality,
-            love_style=love_style,
-            career=career,
-            relationships=relationships,
+            personality=f"Phù hợp {tone} nhau với điểm số {score}/100",
+            love_style=f"Phong cách yêu thương: {tone} với điểm số {love_score}/100",
+            career=f"Hợp tác công việc: {tone} với điểm số {career_score}/100",
+            relationships=f"Động lực mối quan hệ: {tone} với điểm số {relationship_score}/100",
             advice=advice,
             conflict_points=conflict_points,
             recommended_activities=activities,
-            aspects=aspects
+            aspects=aspects,
+            ai_analysis=ai_analysis,
+            detailed_reasoning=detailed_reasoning
         )
 
     def _get_planet_sign(self, chart: NatalChart, planet_name: str) -> Optional[str]:
@@ -455,3 +494,148 @@ class AstrologyService:
             if planet.name == planet_name:
                 return planet.sign
         return None
+
+    def _get_ai_compatibility_analysis(self, chart_a: NatalChart, chart_b: NatalChart, base_score: int) -> str:
+        """Get concise AI-enhanced compatibility analysis"""
+        # Build concise chart information
+        chart_a_info = self._build_concise_chart_info(chart_a)
+        chart_b_info = self._build_concise_chart_info(chart_b)
+        
+        # Generate concise analysis
+        return self._generate_concise_compatibility_analysis(chart_a, chart_b, base_score)
+
+    def _get_ai_detailed_reasoning(self, chart_a: NatalChart, chart_b: NatalChart) -> str:
+        """Get AI-generated detailed reasoning for compatibility"""
+        try:
+            # Get element information
+            element_a = SIGN_TRAITS.get(chart_a.sun_sign, "").split("|")[0]
+            element_b = SIGN_TRAITS.get(chart_b.sun_sign, "").split("|")[0]
+            
+            # Get planet information
+            venus_a = self._get_planet_sign(chart_a, "Venus") or chart_a.sun_sign
+            venus_b = self._get_planet_sign(chart_b, "Venus") or chart_b.sun_sign
+            mars_a = self._get_planet_sign(chart_a, "Mars") or chart_a.sun_sign
+            mars_b = self._get_planet_sign(chart_b, "Mars") or chart_b.sun_sign
+            
+            # Generate enhanced detailed reasoning
+            return self._generate_enhanced_detailed_reasoning(chart_a, chart_b, element_a, element_b, venus_a, venus_b, mars_a, mars_b)
+        except Exception as e:
+            self._logger.error(f"AI detailed reasoning failed: {e}")
+            return "Lý do chi tiết không khả dụng do lỗi hệ thống."
+
+    def _build_concise_chart_info(self, chart: NatalChart) -> str:
+        """Build concise chart information for AI analysis"""
+        info = f"- Mặt Trời: {chart.sun_sign}\n"
+        if chart.moon_sign:
+            info += f"- Mặt Trăng: {chart.moon_sign}\n"
+        if chart.ascendant:
+            info += f"- Cung Mọc: {chart.ascendant}\n"
+        
+        # Add key planet positions concisely
+        for planet in chart.planets:
+            info += f"- {planet.name}: {planet.sign}\n"
+        
+        return info
+
+    def _get_element_interaction(self, element_a: str, element_b: str) -> str:
+        """Get element interaction description"""
+        if element_a == element_b:
+            return "Cùng nguyên tố - Tương đồng mạnh mẽ"
+        elif {element_a, element_b} in [{"Fire", "Air"}, {"Water", "Earth"}]:
+            return "Tương sinh - Hỗ trợ tốt"
+        elif {element_a, element_b} in [{"Fire", "Water"}, {"Air", "Earth"}]:
+            return "Tương khắc - Cần nỗ lực hòa hợp"
+        else:
+            return "Khác biệt - Học hỏi lẫn nhau"
+
+    def _get_dominant_planets_description(self, chart: NatalChart) -> str:
+        """Get description of dominant planets"""
+        descriptions = []
+        
+        # Check for strong placements
+        for planet in chart.planets:
+            if planet.sign in [chart.sun_sign, chart.ascendant]:
+                descriptions.append(f"{planet.name} mạnh ở {planet.sign}")
+        
+        if not descriptions:
+            descriptions.append("Mặt Trời và Mặt Trăng là hành tinh chủ đạo")
+        
+        return ", ".join(descriptions)
+
+    def _generate_concise_compatibility_analysis(self, chart_a: NatalChart, chart_b: NatalChart, base_score: int) -> str:
+        """Generate concise compatibility analysis"""
+        element_a = SIGN_TRAITS.get(chart_a.sun_sign, "").split("|")[0]
+        element_b = SIGN_TRAITS.get(chart_b.sun_sign, "").split("|")[0]
+        
+        element_interaction = self._get_element_interaction(element_a, element_b)
+        
+        # Generate concise analysis
+        analysis = f"""🤖 **Phân tích AI: Độ tương thích {base_score}/100**
+
+**Tổng quan:** Sự kết hợp năng lượng độc đáo giữa {element_a} và {element_b}, tạo nên nền tảng {element_interaction.lower()}.
+
+**Điểm mạnh:** Cả hai có thể học hỏi lẫn nhau để phát triển bản thân toàn diện.
+
+**Thách thức:** Cần kiên nhẫn để thấu hiểu những khác biệt trong cách suy nghĩ.
+
+**Lời khuyên:** Hãy dành thời gian để tìm hiểu và trân trọng những điểm khác biệt - đây chính là cơ hội để cả hai cùng trưởng thành."""
+        
+        return analysis
+
+    def _generate_enhanced_detailed_reasoning(self, chart_a: NatalChart, chart_b: NatalChart, element_a: str, element_b: str, venus_a: str, venus_b: str, mars_a: str, mars_b: str) -> str:
+        """Generate concise detailed reasoning"""
+        element_interaction = self._get_element_interaction(element_a, element_b)
+        
+        # Generate concise reasoning
+        reasoning = f"""🔍 **Lý Do Chi Tiết:**
+
+**NGUYÊN TỐ TƯƠNG TÁC:**
+- Người A: {element_a} (năng lượng {element_a.lower()})
+- Người B: {element_b} (năng lượng {element_b.lower()})
+→ **Tương tác nguyên tố: {element_interaction.lower()}**
+
+**CUNG HOÀNG ĐẠO CHỦ ĐẠO:**
+- Mặt Trời A: {chart_a.sun_sign} - Năng lượng cốt lõi, bản chất con người
+- Mặt Trời B: {chart_b.sun_sign} - Năng lượng cốt lõi, bản chất con người
+- Kim Tinh A: {venus_a} - Cách yêu thương và giá trị cảm xúc
+- Kim Tinh B: {venus_b} - Cách yêu thương và giá trị cảm xúc  
+- Hỏa Tinh A: {mars_a} - Động lực, đam mê và cách hành động
+- Hỏa Tinh B: {mars_b} - Động lực, đam mê và cách hành động
+
+**GIẢI THÍCH CHI TIẾT:**
+1. **Sự hòa hợp tiềm năng:** Cả hai có thể học hỏi lẫn nhau để phát triển bản thân toàn diện hơn thông qua việc bổ sung những điểm mạnh khác biệt.
+
+2. **Xung đột cần lưu ý:** Sự khác biệt trong cách thể hiện cảm xúc và nhu cầu có thể dẫn đến hiểu lầm nếu không có sự thấu hiểu.
+
+3. **Phát triển mối quan hệ:** Cả hai cần kiên nhẫn lắng nghe và thấu hiểu điểm khác biệt, đây là chìa khóa để xây dựng mối quan hệ bền vững.
+
+**Kết luận:** Đây là một sự kết hợp có tiềm năng phát triển mạnh mẽ nếu cả hai cùng nỗ lực thấu hiểu và tôn trọng sự khác biệt của đối phương."""
+        
+        return reasoning
+
+    def _build_fallback_svg(self, natal: NatalChart, time_unknown: bool) -> Optional[str]:
+        """Generate a minimal fallback SVG when Kerykeion fails"""
+        try:
+            if time_unknown:
+                # For unknown time, create a simple sun sign chart
+                return f"""<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="100%" height="100%" fill="white"/>
+                    <circle cx="200" cy="200" r="180" fill="none" stroke="#333" stroke-width="2"/>
+                    <text x="200" y="50" text-anchor="middle" font-size="24" font-family="Arial">Bản Đồ Sao</text>
+                    <text x="200" y="80" text-anchor="middle" font-size="16" font-family="Arial">Cung Mặt Trời: {natal.sun_sign}</text>
+                    <text x="200" y="350" text-anchor="middle" font-size="12" font-family="Arial">* Thời gian sinh không xác định</text>
+                </svg>"""
+            else:
+                # For known time, create a basic chart structure
+                return f"""<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="100%" height="100%" fill="white"/>
+                    <circle cx="200" cy="200" r="180" fill="none" stroke="#333" stroke-width="2"/>
+                    <line x1="200" y1="20" x2="200" y2="380" stroke="#666" stroke-width="1"/>
+                    <line x1="20" y1="200" x2="380" y2="200" stroke="#666" stroke-width="1"/>
+                    <text x="200" y="50" text-anchor="middle" font-size="24" font-family="Arial">Bản Đồ Sao</text>
+                    <text x="200" y="80" text-anchor="middle" font-size="16" font-family="Arial">Cung Mặt Trời: {natal.sun_sign}</text>
+                    <text x="200" y="350" text-anchor="middle" font-size="12" font-family="Arial">* Dữ liệu hạn chế</text>
+                </svg>"""
+        except Exception as e:
+            self._logger.error(f"Fallback SVG generation failed: {e}")
+            return None

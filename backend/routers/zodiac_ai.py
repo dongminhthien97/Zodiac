@@ -5,8 +5,11 @@ Zodiac AI Router - Professional-quality astrological reports
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 from pydantic import BaseModel
+import logging
 
 from services.zodiac_ai_service import ZodiacAIService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/zodiac-ai", tags=["Zodiac AI"])
 
@@ -33,12 +36,17 @@ async def generate_zodiac_ai_report(request: ZodiacAIRequest):
     - Vietnamese language support
     """
     try:
+        # Log the request to track multiple invocations
+        logger.info(f"Zodiac AI report requested: datetime={request.datetime_utc}, lat={request.lat}, lon={request.lon}")
+        
         zodiac_service = ZodiacAIService()
         result = zodiac_service.generate_zodiac_ai_report(
             request.datetime_utc,
             request.lat,
             request.lon
         )
+        
+        logger.info(f"Zodiac AI report generated successfully for: datetime={request.datetime_utc}, lat={request.lat}, lon={request.lon}")
         
         return ZodiacAIResponse(
             report=result["report"],
@@ -48,6 +56,7 @@ async def generate_zodiac_ai_report(request: ZodiacAIRequest):
         )
         
     except Exception as e:
+        logger.error(f"Error generating Zodiac AI report: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error generating Zodiac AI report: {str(e)}"

@@ -112,6 +112,8 @@ class CompatibilityDetails(BaseModel):
     conflict_points: str
     recommended_activities: list[str]
     aspects: list[str]
+    ai_analysis: Optional[str] = None
+    detailed_reasoning: Optional[str] = None
 
 
 class CompatibilityResponse(BaseModel):

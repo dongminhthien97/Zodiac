@@ -37,15 +37,21 @@ class EphemerisService:
         if not swe:
             self._logger.warning("Swiss Ephemeris (swisseph) not available. EphemerisService will be limited.")
 
-    def planet_positions(self, dt: datetime, lat: float | None = None, lon: float | None = None) -> List[PlanetPosition]:
-        """Return list of PlanetPosition for supported planets using UTC datetime.
+    def planet_positions(self, datetime_utc: str, lat: float | None = None, lon: float | None = None) -> List[PlanetPosition]:
+        """Return list of PlanetPosition for supported planets using UTC datetime string.
 
         Args:
-            dt: timezone-aware or naive datetime (assumed UTC)
+            datetime_utc: ISO 8601 datetime string (e.g., '2024-01-01T12:00:00')
             lat, lon: optional, not used for planet longitudes but kept for API parity
         """
         if not swe:
             return []
+
+        # Parse datetime string to datetime object
+        try:
+            dt = datetime.fromisoformat(datetime_utc.replace('Z', '+00:00'))
+        except ValueError as e:
+            raise ValueError(f"Invalid datetime format: {datetime_utc}. Expected ISO 8601 format.") from e
 
         tjd = swe.julday(dt.year, dt.month, dt.day, dt.hour + dt.minute / 60.0 + dt.second / 3600.0)
         results: List[PlanetPosition] = []

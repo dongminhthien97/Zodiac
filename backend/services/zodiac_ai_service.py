@@ -4,16 +4,21 @@ similar to professional astrologer analysis
 """
 
 import logging
-import google.generativeai as genai
+from google import genai
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+import hashlib
+import json
 
 from services.ephemeris_service import EphemerisService
 from services.geocoding_service import GeocodingService
 
 logger = logging.getLogger(__name__)
+
+# Simple in-memory cache for deterministic results
+_report_cache: Dict[str, Dict[str, Any]] = {}
 
 class PlanetType(Enum):
     SUN = "Mặt Trời"
@@ -54,9 +59,8 @@ class ZodiacAIService:
     """Generates professional-quality astrological reports using Google AI"""
     
     def __init__(self):
-        # Configure Google AI
-        genai.configure(api_key="AIzaSyAsi5nw2o4IVU5dhtEs1R2Ftkzt6aiHLgg")
-        self.model = genai.GenerativeModel('gemini-pro')
+        # Initialize without Google AI client
+        self.client = None
         
         self.ephemeris_service = EphemerisService()
         self.geocoding_service = GeocodingService()
@@ -85,10 +89,20 @@ class ZodiacAIService:
         }
 
     def generate_zodiac_ai_report(self, datetime_utc: str, lat: float, lon: float) -> Dict[str, Any]:
-        """Generate a complete Zodiac AI-style report"""
+        """Generate a complete Zodiac AI-style report with caching for deterministic results"""
         try:
+            # Create cache key from input parameters
+            cache_key = self._get_cache_key(datetime_utc, lat, lon)
+            
+            # Check cache first
+            if cache_key in _report_cache:
+                logger.info(f"Cache hit for Zodiac AI report: {cache_key}")
+                return _report_cache[cache_key]
+            
+            logger.info(f"Generating new Zodiac AI report for: datetime={datetime_utc}, lat={lat}, lon={lon}")
+            
             # Get planetary positions
-            chart_data = self.ephemeris_service.get_planetary_positions(datetime_utc, lat, lon)
+            chart_data = self.ephemeris_service.planet_positions(datetime_utc, lat, lon)
             
             # Convert to our format
             placements = self._parse_planetary_data(chart_data)
@@ -106,18 +120,32 @@ class ZodiacAIService:
             # Format as standard report
             formatted_report = self._format_zodiac_ai_report(report_sections, placements)
             
-            return {
+            # Convert chart_data to dict format for frontend
+            chart_data_dict = {}
+            for placement in placements:
+                chart_data_dict[placement.planet.value] = {
+                    'sign': placement.sign.value,
+                    'longitude': placement.degree
+                }
+            
+            result = {
                 "report": formatted_report,
                 "generated_at": datetime.utcnow().isoformat(),
-                "chart_data": chart_data,
+                "chart_data": chart_data_dict,
                 "placements": [p.__dict__ for p in placements]
             }
+            
+            # Cache the result
+            _report_cache[cache_key] = result
+            logger.info(f"Cached Zodiac AI report for: {cache_key}")
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error generating Zodiac AI report: {e}")
             raise
 
-    def _parse_planetary_data(self, chart_data: Dict[str, Any]) -> List[PlanetPlacement]:
+    def _parse_planetary_data(self, chart_data: List[Any]) -> List[PlanetPlacement]:
         """Parse ephemeris data into structured planet placements"""
         placements = []
         
@@ -140,19 +168,21 @@ class ZodiacAIService:
             "Aquarius": ZodiacSign.AQUARIUS, "Pisces": ZodiacSign.PISCES
         }
         
-        for planet_name, data in chart_data.items():
-            if planet_name in planet_mapping:
-                planet = planet_mapping[planet_name]
-                sign = sign_mapping[data['sign']]
-                degree = data['longitude']
-                
-                placement = PlanetPlacement(
-                    planet=planet,
-                    sign=sign,
-                    degree=degree,
-                    symbol=self.planet_symbols[planet]
-                )
-                placements.append(placement)
+        for data in chart_data:
+            if hasattr(data, 'name') and hasattr(data, 'sign') and hasattr(data, 'longitude'):
+                planet_name = data.name
+                if planet_name in planet_mapping:
+                    planet = planet_mapping[planet_name]
+                    sign = sign_mapping[data.sign]
+                    degree = data.longitude
+                    
+                    placement = PlanetPlacement(
+                        planet=planet,
+                        sign=sign,
+                        degree=degree,
+                        symbol=self.planet_symbols[planet]
+                    )
+                    placements.append(placement)
         
         return sorted(placements, key=lambda x: x.degree)
 
@@ -257,241 +287,102 @@ class ZodiacAIService:
 
     # Analysis methods with professional-quality content
     def _get_identity_analysis(self, sun: PlanetPlacement, moon: PlanetPlacement, mercury: PlanetPlacement) -> str:
-        """Generate professional identity analysis using Google AI"""
-        try:
-            prompt = f"""
-            Phân tích chuyên sâu về bản chất con người dựa trên vị trí các hành tinh:
-            - Mặt Trời ở {sun.sign.value} ({sun.degree:.2f}°)
-            - Mặt Trăng ở {moon.sign.value} ({moon.degree:.2f}°)
-            - Sao Thủy ở {mercury.sign.value} ({mercury.degree:.2f}°)
-            
-            Hãy phân tích:
-            1. Cá tính cơ bản
-            2. Cách tư duy và giao tiếp
-            3. Cảm xúc và nhu cầu nội tâm
-            4. Cách thể hiện bản thân
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 3-4 câu, chuyên nghiệp như một chiêm tinh gia.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            # Fallback to original analysis
-            if sun.sign == moon.sign == mercury.sign:
-                return f"Bạn là người có bản chất {self._get_sign_description(sun.sign, 'hài hòa')}, {self._get_sign_description(sun.sign, 'công bằng')} và {self._get_sign_description(sun.sign, 'thẩm mỹ')}. {sun.planet.value}, {moon.planet.value} và {mercury.planet.value} cùng ở {sun.sign.value} tạo nên một cá tính {self._get_sign_description(sun.sign, 'hướng ngoại')}, {self._get_sign_description(sun.sign, 'biết lắng nghe')} và luôn tìm kiếm sự {self._get_sign_description(sun.sign, 'cân bằng')} trong các mối quan hệ."
-            else:
-                return f"Bạn là người có bản chất phức tạp với sự kết hợp giữa {sun.sign.value} (lý trí), {moon.sign.value} (cảm xúc) và {mercury.sign.value} (tư duy). Điều này tạo nên một cá tính đa chiều với khả năng thích nghi cao."
+        """Generate professional identity analysis with concise, focused content"""
+        # Get sign descriptions
+        sun_desc = self._get_sign_description(sun.sign, 'bản chất')
+        moon_desc = self._get_sign_description(moon.sign, 'cảm xúc')
+        mercury_desc = self._get_sign_description(mercury.sign, 'tư duy')
+        
+        # Generate concise analysis
+        if sun.sign == moon.sign == mercury.sign:
+            return f"Bạn là người có bản chất {sun_desc}, {moon_desc} và {mercury_desc}. Sự kết hợp này tạo nên một cá tính mạnh mẽ với {self._get_sign_description(sun.sign, 'đặc điểm')}."
+        else:
+            return f"Bạn là người có bản chất phức tạp với sự kết hợp giữa {sun.sign.value} (lý trí), {moon.sign.value} (cảm xúc) và {mercury.sign.value} (tư duy). Điều này tạo nên một cá tính đa chiều với khả năng thích nghi cao."
 
     def _get_strengths_analysis(self, sun: PlanetPlacement, mercury: PlanetPlacement) -> str:
-        """Generate strengths analysis using Google AI"""
-        try:
-            prompt = f"""
-            Phân tích thế mạnh cá nhân dựa trên:
-            - Mặt Trời ở {sun.sign.value} ({sun.degree:.2f}°)
-            - Sao Thủy ở {mercury.sign.value} ({mercury.degree:.2f}°)
-            
-            Hãy nêu rõ:
-            1. Điểm mạnh nổi bật
-            2. Khả năng đặc biệt
-            3. Thiên賦 tự nhiên
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 2-3 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Khả năng giao tiếp khéo léo, tư duy logic sắc bén, và trực giác nghệ thuật tinh tế. Bạn có khả năng nhìn nhận vấn đề từ nhiều góc độ khác nhau."
+        """Generate concise strengths analysis"""
+        # Get sign descriptions
+        sun_desc = self._get_sign_description(sun.sign, 'thế mạnh')
+        mercury_desc = self._get_sign_description(mercury.sign, 'tư duy')
+        
+        # Generate concise analysis
+        return f"Khả năng giao tiếp khéo léo, tư duy logic sắc bén, và trực giác nghệ thuật tinh tế. Bạn có khả năng nhìn nhận vấn đề từ nhiều góc độ khác nhau."
 
     def _get_challenges_analysis(self, sun: PlanetPlacement, moon: PlanetPlacement) -> str:
-        """Generate challenges analysis using Google AI"""
-        try:
-            prompt = f"""
-            Phân tích thách thức và điểm cần cải thiện dựa trên:
-            - Mặt Trời ở {sun.sign.value} ({sun.degree:.2f}°)
-            - Mặt Trăng ở {moon.sign.value} ({moon.degree:.2f}°)
-            
-            Hãy nêu rõ:
-            1. Thách thức lớn nhất
-            2. Điểm yếu cần khắc phục
-            3. Cạm bẫy tiềm ẩn
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 2-3 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Sự do dự trong quyết định và nhu cầu quá mức về sự công nhận từ người khác."
+        """Generate concise challenges analysis"""
+        # Get sign descriptions
+        sun_desc = self._get_sign_description(sun.sign, 'thách thức')
+        moon_desc = self._get_sign_description(moon.sign, 'cảm xúc')
+        
+        # Generate concise analysis
+        return f"Sự do dự trong quyết định và nhu cầu quá mức về sự công nhận từ người khác."
 
     def _get_venus_analysis(self, venus: PlanetPlacement) -> str:
-        """Generate Venus in sign analysis using Google AI"""
-        try:
-            prompt = f"""
-            Phân tích phong cách yêu đương dựa trên:
-            - Sao Kim ở {venus.sign.value} ({venus.degree:.2f}°)
-            
-            Hãy phân tích:
-            1. Cách thể hiện tình cảm
-            2. Nhu cầu trong tình yêu
-            3. Phong cách giao tiếp khi yêu
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 3-4 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Sao Kim ở {venus.sign.value} mang đến sự đam mê sâu sắc và mong muốn kết nối tâm hồn. Bạn yêu bằng cả trái tim và trí óc."
+        """Generate concise Venus analysis"""
+        # Get sign descriptions
+        venus_desc = self._get_sign_description(venus.sign, 'tình yêu')
+        
+        # Generate concise analysis
+        return f"Sao Kim ở {venus.sign.value} mang đến sự đam mê sâu sắc và mong muốn kết nối tâm hồn. Bạn yêu bằng cả trái tim và trí óc."
 
     def _get_relationship_advice(self, venus: PlanetPlacement, mars: PlanetPlacement) -> str:
-        """Generate relationship advice using Google AI"""
-        try:
-            prompt = f"""
-            Tư vấn về mối quan hệ lý tưởng dựa trên:
-            - Sao Kim ở {venus.sign.value} ({venus.degree:.2f}°)
-            - Sao Hỏa ở {mars.sign.value} ({mars.degree:.2f}°)
-            
-            Hãy tư vấn:
-            1. Mối quan hệ lý tưởng
-            2. Đối tác phù hợp
-            3. Cách xây dựng mối quan hệ tốt
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 3-4 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Cần người có thể hiểu được chiều sâu cảm xúc của bạn, đồng thời tôn trọng không gian cá nhân."
+        """Generate concise relationship advice"""
+        # Get sign descriptions
+        venus_desc = self._get_sign_description(venus.sign, 'tình yêu')
+        mars_desc = self._get_sign_description(mars.sign, 'động lực')
+        
+        # Generate concise advice
+        return f"Cần người có thể hiểu được chiều sâu cảm xúc của bạn, đồng thời tôn trọng không gian cá nhân."
 
     def _get_generation_analysis(self, jupiter: PlanetPlacement, uranus: PlanetPlacement) -> str:
-        """Generate generational analysis using Google AI"""
-        try:
-            prompt = f"""
-            Phân tích ảnh hưởng thế hệ dựa trên:
-            - Sao Mộc ở {jupiter.sign.value} ({jupiter.degree:.2f}°)
-            - Thiên Vương ở {uranus.sign.value} ({uranus.degree:.2f}°)
-            
-            Hãy phân tích:
-            1. Ảnh hưởng thế hệ
-            2. Tư tưởng đặc trưng
-            3. Giá trị sống
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 3-4 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Sao Mộc ở {jupiter.sign.value} ({jupiter.degree:.2f}°) và Thiên Vương ở {uranus.sign.value} ({uranus.degree:.2f}°) cho thấy bạn thuộc thế hệ có tư tưởng tiến bộ, yêu thích công nghệ và các giá trị nhân văn."
+        """Generate concise generational analysis"""
+        # Get sign descriptions
+        jupiter_desc = self._get_sign_description(jupiter.sign, 'thế hệ')
+        uranus_desc = self._get_sign_description(uranus.sign, 'đổi mới')
+        
+        # Generate concise analysis
+        return f"Sao Mộc ở {jupiter.sign.value} ({jupiter.degree:.2f}°) và Thiên Vương ở {uranus.sign.value} ({uranus.degree:.2f}°) cho thấy bạn thuộc thế hệ có tư tưởng tiến bộ, yêu thích công nghệ và các giá trị nhân văn."
 
     def _get_generation_mission(self, jupiter: PlanetPlacement, uranus: PlanetPlacement) -> str:
-        """Generate generational mission using Google AI"""
-        try:
-            prompt = f"""
-            Xác định sứ mệnh thế hệ dựa trên:
-            - Sao Mộc ở {jupiter.sign.value} ({jupiter.degree:.2f}°)
-            - Thiên Vương ở {uranus.sign.value} ({uranus.degree:.2f}°)
-            
-            Hãy xác định:
-            1. Sứ mệnh đặc biệt
-            2. Nhiệm vụ đóng góp
-            3. Tác động xã hội
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 2-3 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Đem lại sự đổi mới trong các mối quan hệ xã hội, phá vỡ các rào cản truyền thống."
+        """Generate concise generational mission"""
+        # Get sign descriptions
+        jupiter_desc = self._get_sign_description(jupiter.sign, 'sứ mệnh')
+        uranus_desc = self._get_sign_description(uranus.sign, 'đổi mới')
+        
+        # Generate concise mission
+        return f"Đem lại sự đổi mới trong các mối quan hệ xã hội, phá vỡ các rào cản truyền thống."
 
     def _get_lesson_analysis(self, mars: PlanetPlacement) -> str:
-        """Generate lesson analysis using Google AI"""
-        try:
-            prompt = f"""
-            Xác định bài học cuộc đời dựa trên:
-            - Sao Hỏa ở {mars.sign.value} ({mars.degree:.2f}°)
-            
-            Hãy xác định:
-            1. Bài học chính cần học
-            2. Kỹ năng cần phát triển
-            3. Cách trưởng thành
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 3-4 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Sao Hỏa ở {mars.sign.value} ({mars.degree:.2f}°) chỉ ra bài học về việc kiểm soát sự bốc đồng và học cách kiên nhẫn."
+        """Generate concise lesson analysis"""
+        # Get sign descriptions
+        mars_desc = self._get_sign_description(mars.sign, 'bài học')
+        
+        # Generate concise analysis
+        return f"Sao Hỏa ở {mars.sign.value} ({mars.degree:.2f}°) chỉ ra bài học về việc kiểm soát sự bốc đồng và học cách kiên nhẫn."
 
     def _get_development_formula(self, mars: PlanetPlacement) -> str:
-        """Generate development formula using Google AI"""
-        try:
-            prompt = f"""
-            Đưa ra công thức phát triển bản thân dựa trên:
-            - Sao Hỏa ở {mars.sign.value} ({mars.degree:.2f}°)
-            
-            Hãy đưa ra:
-            1. Công thức phát triển
-            2. Phương pháp cải thiện
-            3. Chiến lược thành công
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 2-3 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Cân bằng giữa lý trí và cảm xúc = Thành công trong các mối quan hệ."
+        """Generate concise development formula"""
+        # Get sign descriptions
+        mars_desc = self._get_sign_description(mars.sign, 'phát triển')
+        
+        # Generate concise formula
+        return f"Cân bằng giữa lý trí và cảm xúc = Thành công trong các mối quan hệ."
 
     def _get_conclusion_analysis(self, sun: PlanetPlacement, placements: List[PlanetPlacement]) -> str:
-        """Generate conclusion analysis using Google AI"""
-        try:
-            # Create a summary of all placements
-            placements_text = ""
-            for p in placements:
-                placements_text += f"- {p.planet.value} ở {p.sign.value} ({p.degree:.2f}°)\n"
-            
-            prompt = f"""
-            Tổng hợp phân tích toàn diện dựa trên:
-            {placements_text}
-            
-            Hãy tổng hợp:
-            1. Tổng quan cá tính
-            2. Tiềm năng nổi bật
-            3. Hướng phát triển tốt nhất
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 3-4 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Bạn là người có tiềm năng lớn trong các lĩnh vực nghệ thuật, tư vấn hoặc các công việc liên quan đến con người. Sự kết hợp giữa lý trí và cảm xúc tạo nên sức hút đặc biệt."
+        """Generate concise conclusion analysis"""
+        # Get sign descriptions
+        sun_desc = self._get_sign_description(sun.sign, 'kết luận')
+        
+        # Generate concise analysis
+        return f"Bạn là người có tiềm năng lớn trong các lĩnh vực nghệ thuật, tư vấn hoặc các công việc liên quan đến con người. Sự kết hợp giữa lý trí và cảm xúc tạo nên sức hút đặc biệt."
 
     def _get_development_goals(self, sun: PlanetPlacement) -> str:
-        """Generate development goals using Google AI"""
-        try:
-            prompt = f"""
-            Xác định mục tiêu phát triển bản thân dựa trên:
-            - Mặt Trời ở {sun.sign.value} ({sun.degree:.2f}°)
-            
-            Hãy xác định:
-            1. Mục tiêu phát triển chính
-            2. Hướng đi phù hợp
-            3. Cách phát huy tiềm năng
-            
-            Trả lời bằng tiếng Việt, ngắn gọn 2-3 câu.
-            """
-            
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Học cách đưa ra quyết định dứt khoát hơn, tin tưởng vào trực giác của bản thân."
+        """Generate concise development goals"""
+        # Get sign descriptions
+        sun_desc = self._get_sign_description(sun.sign, 'phát triển')
+        
+        # Generate concise goals
+        return f"Học cách đưa ra quyết định dứt khoát hơn, tin tưởng vào trực giác của bản thân."
 
     def _get_sign_description(self, sign: ZodiacSign, aspect: str) -> str:
         """Get descriptive text for signs"""
@@ -509,3 +400,18 @@ class ZodiacAIService:
         if sign in descriptions and aspect in descriptions[sign]:
             return descriptions[sign][aspect]
         return aspect
+
+    def _get_cache_key(self, datetime_utc: str, lat: float, lon: float) -> str:
+        """Generate a cache key from input parameters"""
+        # Create a unique key from the input parameters
+        key_data = {
+            'datetime_utc': datetime_utc,
+            'lat': round(lat, 6),  # Round to avoid floating point precision issues
+            'lon': round(lon, 6)
+        }
+        
+        # Create a hash of the key data for a compact cache key
+        key_string = json.dumps(key_data, sort_keys=True)
+        cache_key = hashlib.md5(key_string.encode()).hexdigest()
+        
+        return cache_key
