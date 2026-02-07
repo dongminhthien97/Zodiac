@@ -1251,20 +1251,29 @@ const ResultPage: React.FC = () => {
         .btn-back {
           background: none;
           border: none;
-          color: var(--white-40);
-          cursor: pointer;
-          margin-bottom: 40px;
-          letter-spacing: 2px;
-          font-weight: 700;
+          color: var(--white-70);
           font-family: var(--font-display);
-          transition: color 0.3s;
+          font-size: 14px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          padding: 12px 24px;
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+          border: 1px solid var(--white-10);
         }
-        .btn-back:hover { color: var(--nebula-pink); }
-        .chart-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 30px;
-          margin-bottom: 40px;
+        .btn-back:hover {
+          color: var(--nebula-pink);
+          border-color: var(--nebula-pink);
+          background: rgba(139, 92, 246, 0.1);
+        }
+        .btn-back:active {
+          transform: translateY(1px);
         }
         @media (max-width: 992px) {
           .chart-grid { grid-template-columns: 1fr; }
