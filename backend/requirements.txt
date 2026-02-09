@@ -1,7 +1,7 @@
 ﻿fastapi==0.104.1
 uvicorn==0.24.0
 python-multipart==0.0.6
-kerykeion==7.0.0
+kerykeion==5.7.2  # Fixed: 7.0.0 doesn't exist on PyPI, using latest stable 5.7.2
 geopy==2.4.1
 python-dotenv==1.0.0
 supabase==1.16.0
