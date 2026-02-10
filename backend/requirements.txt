@@ -1,12 +1,21 @@
-﻿fastapi==0.104.1
-uvicorn==0.24.0
-python-multipart==0.0.6
-kerykeion==5.7.2  # Fixed: 7.0.0 doesn't exist on PyPI, using latest stable 5.7.2
-geopy==2.4.1
-python-dotenv==1.0.0
-supabase==2.27.3  # Fixed: 1.16.0 doesn't exist on PyPI, using latest stable 2.27.3
-google-generativeai==0.2.0
-anthropic==0.7.8
-openai==1.3.7
-requests==2.31.0
-pyswisseph==2.10.3.2  # Fixed: 2.00.00-1 doesn't exist on PyPI, using latest stable 2.10.3.2
+﻿# Core FastAPI and web server
+fastapi>=0.104.0,<0.112.0  # Compatible with Python 3.11
+uvicorn[standard]>=0.24.0,<0.31.0  # ASGI server with standard dependencies
+python-multipart>=0.0.6  # Form data parsing
+
+# Astrology and ephemeris libraries (keep latest stable)
+kerykeion>=5.7.2,<6.0.0  # Astrological calculations
+pyswisseph>=2.10.3.2  # Swiss Ephemeris for precise calculations
+geopy>=2.4.1  # Geocoding for location-based astrology
+
+# Database and API clients
+supabase>=2.27.0,<3.0.0  # Supabase client
+requests>=2.32.3  # HTTP requests (required by kerykeion)
+
+# AI and external APIs
+google-generativeai>=0.2.0  # Google AI integration
+anthropic>=0.7.8  # Claude AI integration
+openai>=1.3.7  # OpenAI API integration
+
+# Utilities
+python-dotenv>=1.0.0  # Environment variable management
