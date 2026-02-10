@@ -14,7 +14,7 @@ from models.schemas import (
     InsightBlock, InsightBlockType, InsightEmphasis, StandardReportResponse
 )
 from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIGN_RANGES
-import google.generativeai as genai
+import google.genai as genai
 
 # 1. THIẾT LẬP CẤU HÌNH HỆ THỐNG
 GEONAMES_USER = "century.boy"

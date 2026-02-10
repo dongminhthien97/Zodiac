@@ -4,7 +4,6 @@ similar to professional astrologer analysis
 """
 
 import logging
-from google import genai
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
