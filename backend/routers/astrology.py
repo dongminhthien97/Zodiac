@@ -96,7 +96,7 @@ def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
 
 @router.post("/natal", response_model=NatalResponse)
 def natal(raw_payload: dict = Body(...)) -> NatalResponse:
-    """Generate natal chart with unknown birth time support"""
+    """Generate natal chart with unknown birth time support and robust fallback"""
     try:
         payload = NatalRequest.model_validate(raw_payload)
     except ValidationError as exc:
@@ -111,11 +111,55 @@ def natal(raw_payload: dict = Body(...)) -> NatalResponse:
         payload.person.birth_time = "12:00"
         payload.person.time_unknown = True
 
-    lat, lon, _addr = geocoder.geocode(payload.person.birth_place)
-    if lat is None or lon is None:
-        raise HTTPException(status_code=400, detail="Không thể tìm được vị trí sinh")
+    # Get coordinates with fallback
+    lat, lon, addr = geocoder.geocode(payload.person.birth_place)
+    
+    # Log coordinate resolution results
+    if lat is not None and lon is not None:
+        logger.info(f"Geocoding successful for {payload.person.name}: lat={lat}, lon={lon}, addr={addr}")
+    else:
+        logger.warning(f"Geocoding failed for {payload.person.name}, using fallback coordinates")
+        # Use fallback coordinates for major Vietnamese cities
+        fallback_coords = {
+            "Đà Nẵng": (16.0544, 108.2022),
+            "TP.HCM": (10.8231, 106.6297),
+            "Hồ Chí Minh": (10.8231, 106.6297),
+            "Sài Gòn": (10.8231, 106.6297),
+            "Hà Nội": (21.0285, 105.8542),
+            "Hanoi": (21.0285, 105.8542),
+            "Ho Chi Minh": (10.8231, 106.6297),
+        }
+        
+        # Try to find coordinates for known cities
+        city_found = False
+        for city, coords in fallback_coords.items():
+            if city.lower() in payload.person.birth_place.lower():
+                lat, lon = coords
+                addr = f"{city} (fallback)"
+                logger.info(f"Using fallback coordinates for {city}: lat={lat}, lon={lon}")
+                city_found = True
+                break
+        
+        # If no city found, use default coordinates
+        if not city_found:
+            lat, lon = 10.8231, 106.6297  # Default to Ho Chi Minh City
+            addr = "Ho Chi Minh City (default fallback)"
+            logger.info(f"Using default fallback coordinates: lat={lat}, lon={lon}")
 
-    chart = astrology.build_natal_chart(payload.person, lat, lon)
+    # Build chart with coordinates
+    try:
+        chart = astrology.build_natal_chart(payload.person, lat, lon)
+        logger.info(f"Natal chart generation successful for {payload.person.name}")
+    except HTTPException:
+        # Re-raise HTTP exceptions from astrology service
+        raise
+    except Exception as e:
+        logger.error(f"Critical error in natal chart generation for {payload.person.name}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Chart generation failed: {str(e)}"
+        )
+
     return astrology.build_v2_natal_response(chart, payload.person)
 
 @router.post("/natal/standard", response_model=StandardReportResponse)

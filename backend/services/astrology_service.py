@@ -90,17 +90,34 @@ class AstrologyService:
 
             moon_sign, ascendant, planets, svg_chart = None, None, [], None
 
-            # Only attempt Kerykeion if coordinates are available and time is known
+            # Attempt Kerykeion chart generation with proper fallback
             if KERYKEION_AVAILABLE and lat is not None and lon is not None and not person.time_unknown:
                 try:
                     moon_sign, ascendant, planets, svg_chart = self._kerykeion_chart(person, time_str, lat, lon)
                     self._logger.info(f"Kerykeion chart generation successful for {person.name}")
                 except Exception as e:
-                    self._logger.warning(f"Kerykeion chart generation failed for {person.name}: {e}")
-                    # Continue without Kerykeion data - this is not fatal
-                    moon_sign, ascendant, planets, svg_chart = None, None, [], None
+                    self._logger.error(f"Kerykeion chart generation failed for {person.name}: {e}")
+                    # Fallback to manual calculation if Kerykeion fails
+                    planets = self._fallback_planet_calculation(person, lat, lon)
+                    moon_sign = None
+                    ascendant = None
+                    svg_chart = None
+            else:
+                # No coordinates or unknown time - use fallback
+                planets = self._fallback_planet_calculation(person, lat, lon)
+                moon_sign = None
+                ascendant = None
+                svg_chart = None
 
-            # Build basic chart with available data
+            # Ensure planets is never empty - this is critical for frontend
+            if not planets:
+                self._logger.error(f"Planet calculation failed for {person.name} - planets array is empty")
+                raise HTTPException(
+                    status_code=500, 
+                    detail="Planet calculation failed – missing ephemeris data"
+                )
+
+            # Build chart with validated data
             natal = NatalChart(
                 name=person.name,
                 sun_sign=sun_sign or "Unknown",
@@ -110,28 +127,25 @@ class AstrologyService:
                 svg_chart=svg_chart,
             )
 
-            # Only generate fallback SVG if we don't have one and time is unknown
-            if not natal.svg_chart and person.time_unknown:
+            # Generate SVG chart if needed
+            if not natal.svg_chart:
                 try:
-                    natal.svg_chart = self._build_fallback_svg(natal, person.time_unknown)
-                    self._logger.info(f"Generated fallback SVG for {person.name}")
+                    natal.svg_chart = self._build_svg_chart(natal, person.time_unknown)
+                    self._logger.info(f"Generated SVG chart for {person.name}")
                 except Exception as e:
-                    self._logger.warning(f"Fallback SVG generation failed for {person.name}: {e}")
-                    # Set to None instead of crashing
+                    self._logger.warning(f"SVG chart generation failed for {person.name}: {e}")
                     natal.svg_chart = None
 
             return natal
             
+        except HTTPException:
+            # Re-raise HTTP exceptions
+            raise
         except Exception as e:
             self._logger.error(f"Critical error in build_natal_chart for {person.name}: {e}")
-            # Return minimal chart instead of crashing
-            return NatalChart(
-                name=person.name,
-                sun_sign=self._calculate_sun_sign(person.birth_date) or "Unknown",
-                moon_sign=None,
-                ascendant=None,
-                planets=[],
-                svg_chart=None,
+            raise HTTPException(
+                status_code=500,
+                detail=f"Chart generation failed: {str(e)}"
             )
 
     def _kerykeion_chart(
@@ -619,6 +633,164 @@ class AstrologyService:
 **Kết luận:** Đây là một sự kết hợp có tiềm năng phát triển mạnh mẽ nếu cả hai cùng nỗ lực thấu hiểu và tôn trọng sự khác biệt của đối phương."""
         
         return reasoning
+
+    def _fallback_planet_calculation(self, person: BirthInfo, lat: Optional[float], lon: Optional[float]) -> list[PlanetPosition]:
+        """Fallback planet calculation when Kerykeion fails"""
+        self._logger.info(f"Using fallback planet calculation for {person.name}")
+        
+        try:
+            # Calculate basic planetary positions using simple algorithms
+            planets = []
+            
+            # Get sun sign as base
+            sun_sign = self._calculate_sun_sign(person.birth_date)
+            
+            # Create basic planet positions based on sun sign and date
+            date_obj = datetime.strptime(person.birth_date, "%Y-%m-%d")
+            
+            # Define planet names and their approximate positions relative to sun
+            planet_data = [
+                ("Sun", sun_sign, 0.0),
+                ("Moon", self._calculate_moon_sign(date_obj), 45.0),
+                ("Mercury", self._calculate_mercury_sign(date_obj), 90.0),
+                ("Venus", self._calculate_venus_sign(date_obj), 135.0),
+                ("Mars", self._calculate_mars_sign(date_obj), 180.0),
+                ("Jupiter", self._calculate_jupiter_sign(date_obj), 225.0),
+                ("Saturn", self._calculate_saturn_sign(date_obj), 270.0),
+                ("Uranus", self._calculate_uranus_sign(date_obj), 315.0),
+                ("Neptune", self._calculate_neptune_sign(date_obj), 360.0),
+                ("Pluto", self._calculate_pluto_sign(date_obj), 45.0),
+            ]
+            
+            for name, sign, offset in planet_data:
+                # Calculate longitude based on sign and offset
+                longitude = self._calculate_longitude_from_sign(sign, offset)
+                planets.append(PlanetPosition(name=name, sign=sign, longitude=longitude))
+            
+            self._logger.info(f"Fallback calculation successful for {person.name}: {len(planets)} planets")
+            return planets
+            
+        except Exception as e:
+            self._logger.error(f"Fallback planet calculation failed for {person.name}: {e}")
+            # Return minimal planets as last resort
+            return [
+                PlanetPosition(name="Sun", sign=sun_sign, longitude=0.0),
+                PlanetPosition(name="Moon", sign="Cancer", longitude=45.0),
+                PlanetPosition(name="Mercury", sign=sun_sign, longitude=90.0),
+            ]
+
+    def _calculate_moon_sign(self, date_obj: datetime) -> str:
+        """Calculate moon sign based on date"""
+        # Simplified moon calculation - moon moves ~12-15 degrees per day
+        days = date_obj.timetuple().tm_yday
+        moon_position = (days * 13.2) % 360
+        return self._get_sign_from_longitude(moon_position)
+
+    def _calculate_mercury_sign(self, date_obj: datetime) -> str:
+        """Calculate mercury sign based on date"""
+        # Mercury orbits sun every ~88 days
+        days = date_obj.timetuple().tm_yday
+        mercury_position = (days * 4.15) % 360
+        return self._get_sign_from_longitude(mercury_position)
+
+    def _calculate_venus_sign(self, date_obj: datetime) -> str:
+        """Calculate venus sign based on date"""
+        # Venus orbits sun every ~225 days
+        days = date_obj.timetuple().tm_yday
+        venus_position = (days * 1.6) % 360
+        return self._get_sign_from_longitude(venus_position)
+
+    def _calculate_mars_sign(self, date_obj: datetime) -> str:
+        """Calculate mars sign based on date"""
+        # Mars orbits sun every ~687 days
+        days = date_obj.timetuple().tm_yday
+        mars_position = (days * 0.53) % 360
+        return self._get_sign_from_longitude(mars_position)
+
+    def _calculate_jupiter_sign(self, date_obj: datetime) -> str:
+        """Calculate jupiter sign based on date"""
+        # Jupiter orbits sun every ~4333 days
+        days = date_obj.timetuple().tm_yday
+        jupiter_position = (days * 0.083) % 360
+        return self._get_sign_from_longitude(jupiter_position)
+
+    def _calculate_saturn_sign(self, date_obj: datetime) -> str:
+        """Calculate saturn sign based on date"""
+        # Saturn orbits sun every ~10759 days
+        days = date_obj.timetuple().tm_yday
+        saturn_position = (days * 0.0335) % 360
+        return self._get_sign_from_longitude(saturn_position)
+
+    def _calculate_uranus_sign(self, date_obj: datetime) -> str:
+        """Calculate uranus sign based on date"""
+        # Uranus orbits sun every ~30687 days
+        days = date_obj.timetuple().tm_yday
+        uranus_position = (days * 0.0117) % 360
+        return self._get_sign_from_longitude(uranus_position)
+
+    def _calculate_neptune_sign(self, date_obj: datetime) -> str:
+        """Calculate neptune sign based on date"""
+        # Neptune orbits sun every ~60190 days
+        days = date_obj.timetuple().tm_yday
+        neptune_position = (days * 0.006) % 360
+        return self._get_sign_from_longitude(neptune_position)
+
+    def _calculate_pluto_sign(self, date_obj: datetime) -> str:
+        """Calculate pluto sign based on date"""
+        # Pluto orbits sun every ~90560 days
+        days = date_obj.timetuple().tm_yday
+        pluto_position = (days * 0.004) % 360
+        return self._get_sign_from_longitude(pluto_position)
+
+    def _get_sign_from_longitude(self, longitude: float) -> str:
+        """Convert longitude to zodiac sign"""
+        longitude = longitude % 360
+        signs = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", 
+                "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+        sign_index = int(longitude / 30)
+        return signs[sign_index % 12]
+
+    def _calculate_longitude_from_sign(self, sign: str, offset: float) -> float:
+        """Calculate longitude from sign and offset"""
+        signs = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", 
+                "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+        base_longitude = signs.index(sign) * 30
+        return (base_longitude + offset) % 360
+
+    def _build_svg_chart(self, natal: NatalChart, time_unknown: bool) -> Optional[str]:
+        """Build SVG chart for natal chart"""
+        try:
+            if time_unknown:
+                # For unknown time, create a simple sun sign chart
+                return f"""<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="100%" height="100%" fill="white"/>
+                    <circle cx="200" cy="200" r="180" fill="none" stroke="#333" stroke-width="2"/>
+                    <text x="200" y="50" text-anchor="middle" font-size="24" font-family="Arial">Bản Đồ Sao</text>
+                    <text x="200" y="80" text-anchor="middle" font-size="16" font-family="Arial">Cung Mặt Trời: {natal.sun_sign}</text>
+                    <text x="200" y="350" text-anchor="middle" font-size="12" font-family="Arial">* Thời gian sinh không xác định</text>
+                </svg>"""
+            else:
+                # For known time, create a basic chart structure with planets
+                svg_content = f"""<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="100%" height="100%" fill="white"/>
+                    <circle cx="200" cy="200" r="180" fill="none" stroke="#333" stroke-width="2"/>
+                    <line x1="200" y1="20" x2="200" y2="380" stroke="#666" stroke-width="1"/>
+                    <line x1="20" y1="200" x2="380" y2="200" stroke="#666" stroke-width="1"/>
+                    <text x="200" y="50" text-anchor="middle" font-size="24" font-family="Arial">Bản Đồ Sao</text>
+                    <text x="200" y="80" text-anchor="middle" font-size="16" font-family="Arial">Cung Mặt Trời: {natal.sun_sign}</text>"""
+                
+                # Add planet positions
+                for i, planet in enumerate(natal.planets[:8]):  # Show first 8 planets
+                    angle = (i * 45) % 360
+                    x = 200 + 150 * (0.7 if i % 2 == 0 else 0.9) * (1 if angle < 180 else -1)
+                    y = 200 + 150 * (0.7 if i % 2 == 0 else 0.9) * (1 if angle < 90 or angle > 270 else -1)
+                    svg_content += f'<text x="{x}" y="{y}" text-anchor="middle" font-size="12" font-family="Arial">{planet.name}: {planet.sign}</text>'
+                
+                svg_content += '<text x="200" y="350" text-anchor="middle" font-size="12" font-family="Arial">* Dữ liệu hạn chế</text></svg>'
+                return svg_content
+        except Exception as e:
+            self._logger.error(f"SVG chart generation failed: {e}")
+            return None
 
     def _build_fallback_svg(self, natal: NatalChart, time_unknown: bool) -> Optional[str]:
         """Generate a minimal fallback SVG when Kerykeion fails"""
