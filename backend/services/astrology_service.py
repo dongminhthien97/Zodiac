@@ -14,7 +14,7 @@ from models.schemas import (
     InsightBlock, InsightBlockType, InsightEmphasis, StandardReportResponse
 )
 from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIGN_RANGES
-from google import genai
+import google.generativeai as genai
 
 # 1. THIẾT LẬP CẤU HÌNH HỆ THỐNG
 GEONAMES_USER = "century.boy"
@@ -66,7 +66,8 @@ class AstrologyService:
         self._logger = logging.getLogger(__name__)
         # Initialize Google AI client for enhanced compatibility analysis
         try:
-            self.ai_client = genai.Client()
+            genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+            self.ai_client = genai
         except Exception as e:
             self._logger.warning(f"Google AI client initialization failed: {e}")
             self.ai_client = None
