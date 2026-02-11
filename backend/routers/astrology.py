@@ -105,11 +105,18 @@ def natal(raw_payload: dict = Body(...)) -> NatalResponse:
     astrology = AstrologyService()
     geocoder = GeocodingService()
 
-    # Handle unknown birth time
-    if payload.person.birth_time is None or payload.person.time_unknown:
-        # Default to noon for unknown birth time
-        payload.person.birth_time = "12:00"
-        payload.person.time_unknown = True
+    # Validate API contract
+    if payload.person.time_unknown and payload.person.birth_time is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="birth_time must be null when time_unknown is true"
+        )
+    
+    if not payload.person.time_unknown and payload.person.birth_time is None:
+        raise HTTPException(
+            status_code=400,
+            detail="birth_time must not be null when time_unknown is false"
+        )
 
     # Get coordinates with fallback
     lat, lon, addr = geocoder.geocode(payload.person.birth_place)

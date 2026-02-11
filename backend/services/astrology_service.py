@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 import traceback
+import pytz
+import swisseph as swe
 
 from models.schemas import (
     BirthInfo, CompatibilityDetails, NatalChart, PlanetPosition,
@@ -79,64 +81,24 @@ class AstrologyService:
         self._logger.debug(f"Building natal chart for: {person.name} at {lat}, {lon}")
         
         try:
-            sun_sign = self._calculate_sun_sign(person.birth_date)
-            
-            # Handle unknown birth time
-            if person.birth_time is None or person.time_unknown:
-                time_str = "12:00"  # Default to noon
-                person.time_unknown = True
-            else:
-                time_str = person.birth_time
-
-            moon_sign, ascendant, planets, svg_chart = None, None, [], None
-
-            # Attempt Kerykeion chart generation with proper fallback
-            if KERYKEION_AVAILABLE and lat is not None and lon is not None and not person.time_unknown:
-                try:
-                    moon_sign, ascendant, planets, svg_chart = self._kerykeion_chart(person, time_str, lat, lon)
-                    self._logger.info(f"Kerykeion chart generation successful for {person.name}")
-                except Exception as e:
-                    self._logger.error(f"Kerykeion chart generation failed for {person.name}: {e}")
-                    # Fallback to manual calculation if Kerykeion fails
-                    planets = self._fallback_planet_calculation(person, lat, lon)
-                    moon_sign = None
-                    ascendant = None
-                    svg_chart = None
-            else:
-                # No coordinates or unknown time - use fallback
-                planets = self._fallback_planet_calculation(person, lat, lon)
-                moon_sign = None
-                ascendant = None
-                svg_chart = None
-
-            # Ensure planets is never empty - this is critical for frontend
-            if not planets:
-                self._logger.error(f"Planet calculation failed for {person.name} - planets array is empty")
+            # Validate API contract
+            if person.time_unknown and person.birth_time is not None:
                 raise HTTPException(
-                    status_code=500, 
-                    detail="Planet calculation failed – missing ephemeris data"
+                    status_code=400,
+                    detail="birth_time must be null when time_unknown is true"
+                )
+            
+            if not person.time_unknown and person.birth_time is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="birth_time must not be null when time_unknown is false"
                 )
 
-            # Build chart with validated data
-            natal = NatalChart(
-                name=person.name,
-                sun_sign=sun_sign or "Unknown",
-                moon_sign=moon_sign,
-                ascendant=ascendant if not person.time_unknown else None,
-                planets=planets,
-                svg_chart=svg_chart,
-            )
-
-            # Generate SVG chart if needed
-            if not natal.svg_chart:
-                try:
-                    natal.svg_chart = self._build_svg_chart(natal, person.time_unknown)
-                    self._logger.info(f"Generated SVG chart for {person.name}")
-                except Exception as e:
-                    self._logger.warning(f"SVG chart generation failed for {person.name}: {e}")
-                    natal.svg_chart = None
-
-            return natal
+            # Dispatch to appropriate calculation mode
+            if person.time_unknown:
+                return self._generate_natal_without_time(person, lat, lon)
+            else:
+                return self._generate_natal_with_time(person, lat, lon)
             
         except HTTPException:
             # Re-raise HTTP exceptions
@@ -147,6 +109,186 @@ class AstrologyService:
                 status_code=500,
                 detail=f"Chart generation failed: {str(e)}"
             )
+
+    def _generate_natal_with_time(
+        self, person: BirthInfo, lat: Optional[float], lon: Optional[float]
+    ) -> NatalChart:
+        """Generate natal chart with exact birth time using Swiss Ephemeris"""
+        self._logger.info(f"Generating natal chart WITH birth time for {person.name}")
+        
+        try:
+            # Parse date and time
+            date_obj = datetime.strptime(person.birth_date, "%Y-%m-%d")
+            hour, minute = [int(x) for x in person.birth_time.split(":")]
+            
+            # Create datetime object
+            local_dt = datetime(date_obj.year, date_obj.month, date_obj.day, hour, minute)
+            
+            # Convert to UTC using timezone
+            timezone_str = "Asia/Ho_Chi_Minh"  # Default timezone for Vietnam
+            tz = pytz.timezone(timezone_str)
+            local_dt = tz.localize(local_dt)
+            utc_dt = local_dt.astimezone(pytz.UTC)
+            
+            # Calculate Julian Day
+            jd = swe.julday(
+                utc_dt.year, 
+                utc_dt.month, 
+                utc_dt.day, 
+                utc_dt.hour + utc_dt.minute/60.0 + utc_dt.second/3600.0
+            )
+            
+            # Calculate planets
+            planets = self._calculate_planets_with_swiss(jd)
+            
+            # Calculate houses and ascendant
+            houses, ascendant = self._calculate_houses_with_swiss(jd, lat, lon)
+            
+            # Calculate sun sign
+            sun_sign = self._get_sign_from_longitude(planets[0].longitude)
+            
+            # Build chart
+            natal = NatalChart(
+                name=person.name,
+                sun_sign=sun_sign,
+                moon_sign=self._get_sign_from_longitude(planets[1].longitude),
+                ascendant=ascendant,
+                planets=planets,
+                houses=houses,
+                svg_chart=None,  # Will be generated later
+            )
+            
+            self._logger.info(f"WITH_TIME calculation successful for {person.name}")
+            return natal
+            
+        except Exception as e:
+            self._logger.error(f"WITH_TIME calculation failed for {person.name}: {e}")
+            raise
+
+    def _generate_natal_without_time(
+        self, person: BirthInfo, lat: Optional[float], lon: Optional[float]
+    ) -> NatalChart:
+        """Generate natal chart without birth time using noon chart method"""
+        self._logger.info(f"Generating natal chart WITHOUT birth time for {person.name}")
+        
+        try:
+            # Parse date and set time to noon
+            date_obj = datetime.strptime(person.birth_date, "%Y-%m-%d")
+            local_dt = datetime(date_obj.year, date_obj.month, date_obj.day, 12, 0)  # Noon
+            
+            # Convert to UTC using timezone
+            timezone_str = "Asia/Ho_Chi_Minh"  # Default timezone for Vietnam
+            tz = pytz.timezone(timezone_str)
+            local_dt = tz.localize(local_dt)
+            utc_dt = local_dt.astimezone(pytz.UTC)
+            
+            # Calculate Julian Day
+            jd = swe.julday(
+                utc_dt.year, 
+                utc_dt.month, 
+                utc_dt.day, 
+                utc_dt.hour + utc_dt.minute/60.0 + utc_dt.second/3600.0
+            )
+            
+            # Calculate planets only (no houses)
+            planets = self._calculate_planets_with_swiss(jd)
+            
+            # DO NOT calculate houses or ascendant
+            houses = []
+            ascendant = None
+            
+            # Calculate sun sign
+            sun_sign = self._get_sign_from_longitude(planets[0].longitude)
+            
+            # Build chart
+            natal = NatalChart(
+                name=person.name,
+                sun_sign=sun_sign,
+                moon_sign=self._get_sign_from_longitude(planets[1].longitude),
+                ascendant=None,  # Explicitly set to None
+                planets=planets,
+                houses=[],  # Empty houses list
+                svg_chart=None,  # Will be generated later
+            )
+            
+            self._logger.info(f"WITHOUT_TIME calculation successful for {person.name}")
+            return natal
+            
+        except Exception as e:
+            self._logger.error(f"WITHOUT_TIME calculation failed for {person.name}: {e}")
+            raise
+
+    def _calculate_planets_with_swiss(self, jd: float) -> list[PlanetPosition]:
+        """Calculate planetary positions using Swiss Ephemeris"""
+        planets = []
+        
+        # Planet indices for Swiss Ephemeris
+        planet_indices = [
+            (0, "Sun"),      # Sun
+            (1, "Moon"),     # Moon
+            (2, "Mercury"),  # Mercury
+            (3, "Venus"),    # Venus
+            (4, "Mars"),     # Mars
+            (5, "Jupiter"),  # Jupiter
+            (6, "Saturn"),   # Saturn
+            (7, "Uranus"),   # Uranus
+            (8, "Neptune"),  # Neptune
+            (9, "Pluto"),    # Pluto
+        ]
+        
+        for idx, name in planet_indices:
+            try:
+                # Calculate planet position
+                result = swe.calc_ut(jd, idx)
+                longitude = result[0][0]  # Get longitude from result
+                
+                # Convert longitude to sign
+                sign = self._get_sign_from_longitude(longitude)
+                
+                planets.append(PlanetPosition(
+                    name=name,
+                    sign=sign,
+                    longitude=longitude
+                ))
+                
+            except Exception as e:
+                self._logger.warning(f"Failed to calculate {name}: {e}")
+                # Skip failed planets rather than crashing
+        
+        if not planets:
+            raise Exception("No planets could be calculated")
+            
+        return planets
+
+    def _calculate_houses_with_swiss(self, jd: float, lat: float, lon: float) -> tuple[list, str]:
+        """Calculate houses and ascendant using Swiss Ephemeris"""
+        if lat is None or lon is None:
+            return [], None
+            
+        try:
+            # Calculate houses
+            houses_result = swe.houses(jd, lat, lon)
+            houses = []
+            
+            # Houses 1-12 (indices 0-11 in result)
+            for i in range(12):
+                house_longitude = houses_result[0][i]
+                sign = self._get_sign_from_longitude(house_longitude)
+                houses.append({
+                    "house": i + 1,
+                    "sign": sign,
+                    "longitude": house_longitude
+                })
+            
+            # Ascendant is the cusp of the 1st house
+            ascendant_longitude = houses_result[0][0]
+            ascendant = self._get_sign_from_longitude(ascendant_longitude)
+            
+            return houses, ascendant
+            
+        except Exception as e:
+            self._logger.warning(f"Failed to calculate houses: {e}")
+            return [], None
 
     def _kerykeion_chart(
         self, person: BirthInfo, time_str: str, lat: float, lon: float
