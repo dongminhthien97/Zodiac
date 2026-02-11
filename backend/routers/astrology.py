@@ -3,7 +3,10 @@ from fastapi import APIRouter, Body, HTTPException
 from pydantic import ValidationError
 import logging
 
-from models.schemas import CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse, StandardReportResponse
+from models.schemas import (
+    CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse, 
+    StandardReportResponse, CompatibilityResponseNew, CompatibilityDetails
+)
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService
 from supabase_client import get_supabase_client
@@ -92,6 +95,48 @@ def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
         logger.warning(f"Database save failed: {e}")
 
     return response
+
+
+@router.post("/compatibility/new", response_model=CompatibilityResponseNew)
+def compatibility_new(raw_payload: dict = Body(...)) -> CompatibilityResponseNew:
+    """New compatibility endpoint with 2 calculation modes and comprehensive analysis"""
+    try:
+        payload = CompatibilityRequest.model_validate(raw_payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    astrology = AstrologyService()
+    
+    # Calculate compatibility with new system
+    try:
+        response = astrology.calculate_compatibility_new(payload.person_a, payload.person_b)
+        logger.info(f"New compatibility calculation successful")
+        
+        # Try to save to database, but don't fail the request if it fails
+        try:
+            supabase = get_supabase_client()
+            if supabase:
+                supabase.table("compatibility_checks").insert(
+                    {
+                        "person_a_name": payload.person_a.name,
+                        "person_b_name": payload.person_b.name,
+                        "person_a_place": payload.person_a.birth_place,
+                        "person_b_place": payload.person_b.birth_place,
+                        "score": response.scores.personality,
+                        "created_at": "now()",
+                    }
+                ).execute()
+        except Exception as e:
+            logger.warning(f"Database save failed: {e}")
+        
+        return response
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"New compatibility calculation failed: {e}")
+        raise HTTPException(status_code=500, detail="Compatibility calculation failed")
 
 
 @router.post("/natal", response_model=NatalResponse)

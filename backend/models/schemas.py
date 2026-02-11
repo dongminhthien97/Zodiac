@@ -199,3 +199,69 @@ class StandardReportResponse(BaseModel):
     generated_at: str
     chart_data: NatalChart
 
+
+# New Compatibility API schemas
+class CompatibilityMeta(BaseModel):
+    hasAccurateTimeA: bool
+    hasAccurateTimeB: bool
+    fallbackActivated: bool
+    aspectsCalculated: int
+    swissCalculationDurationMs: float
+
+
+class CompatibilityScores(BaseModel):
+    personality: int
+    love: int
+    work: int
+    dynamics: int
+    conflict: int
+
+
+class CompatibilityPersonality(BaseModel):
+    summary: str
+    strengths: list[str]
+    challenges: list[str]
+    advice: str
+
+
+class CompatibilityLove(BaseModel):
+    emotionalConnection: str
+    attraction: str
+    longTermPotential: str
+
+
+class CompatibilityWork(BaseModel):
+    teamwork: str
+    leadershipDynamic: str
+    riskFactors: str
+
+
+class CompatibilityRelationshipDynamics(BaseModel):
+    coreTheme: str
+    karmicFactor: str
+    growthLesson: str
+
+
+class CompatibilityConflictPoints(BaseModel):
+    triggers: list[str]
+    resolutionAdvice: str
+
+
+class PlanetaryAspect(BaseModel):
+    aspect: str
+    description: str
+    harmonyLevel: str  # "High" | "Medium" | "Challenging"
+    weight: float
+
+
+class CompatibilityResponseNew(BaseModel):
+    meta: CompatibilityMeta
+    scores: CompatibilityScores
+    personality: CompatibilityPersonality
+    love: CompatibilityLove
+    work: CompatibilityWork
+    relationshipDynamics: CompatibilityRelationshipDynamics
+    conflictPoints: CompatibilityConflictPoints
+    planetaryAspects: list[PlanetaryAspect]
+    detailedAnalysis: str
+

@@ -651,6 +651,407 @@ class AstrologyService:
             detailed_reasoning=detailed_reasoning
         )
 
+    def calculate_compatibility_new(
+        self, person_a: BirthInfo, person_b: BirthInfo
+    ) -> dict:
+        """New compatibility calculation with 2 modes and comprehensive analysis"""
+        import time
+        from models.schemas import (
+            CompatibilityMeta, CompatibilityScores, CompatibilityPersonality,
+            CompatibilityLove, CompatibilityWork, CompatibilityRelationshipDynamics,
+            CompatibilityConflictPoints, PlanetaryAspect, CompatibilityResponseNew
+        )
+
+        start_time = time.time()
+        fallback_activated = False
+        
+        # Determine calculation modes
+        has_accurate_time_a = person_a.birth_time is not None and not person_a.time_unknown
+        has_accurate_time_b = person_b.birth_time is not None and not person_b.time_unknown
+        
+        # Build charts with appropriate modes
+        try:
+            chart_a = self._generate_chart_with_mode(person_a, has_accurate_time_a)
+            chart_b = self._generate_chart_with_mode(person_b, has_accurate_time_b)
+        except Exception as e:
+            self._logger.error(f"Chart generation failed: {e}")
+            raise HTTPException(status_code=500, detail="Chart generation failed")
+
+        # Calculate aspects
+        aspects = self._calculate_compatibility_aspects(chart_a, chart_b)
+        
+        # Fallback if not enough aspects
+        if len(aspects) < 5:
+            aspects.extend(self._generate_fallback_aspects(chart_a, chart_b, aspects))
+            fallback_activated = True
+
+        # Calculate scores
+        scores = self._calculate_compatibility_scores(chart_a, chart_b)
+        
+        # Generate detailed analysis
+        detailed_analysis = self._generate_detailed_compatibility_analysis(
+            chart_a, chart_b, aspects, scores
+        )
+
+        # Calculate duration
+        duration_ms = (time.time() - start_time) * 1000
+        
+        # Log calculation details
+        self._logger.info({
+            "hasTimeA": has_accurate_time_a,
+            "hasTimeB": has_accurate_time_b,
+            "aspectsCalculated": len(aspects),
+            "fallbackActivated": fallback_activated,
+            "swissDurationMs": duration_ms
+        })
+        
+        # Log warning if slow
+        if duration_ms > 10000:
+            self._logger.warning("Swiss ephemeris slow response")
+
+        # Build response
+        meta = CompatibilityMeta(
+            hasAccurateTimeA=has_accurate_time_a,
+            hasAccurateTimeB=has_accurate_time_b,
+            fallbackActivated=fallback_activated,
+            aspectsCalculated=len(aspects),
+            swissCalculationDurationMs=duration_ms
+        )
+
+        return CompatibilityResponseNew(
+            meta=meta,
+            scores=scores,
+            personality=self._build_personality_analysis(chart_a, chart_b, scores),
+            love=self._build_love_analysis(chart_a, chart_b, aspects),
+            work=self._build_work_analysis(chart_a, chart_b, aspects),
+            relationshipDynamics=self._build_relationship_dynamics(chart_a, chart_b, aspects),
+            conflictPoints=self._build_conflict_points(chart_a, chart_b, aspects),
+            planetaryAspects=aspects,
+            detailedAnalysis=detailed_analysis
+        )
+
+    def _generate_chart_with_mode(self, person: BirthInfo, has_accurate_time: bool):
+        """Generate chart with appropriate mode based on time availability"""
+        if has_accurate_time:
+            return self._generate_natal_with_time(person, person.latitude, person.longitude)
+        else:
+            # Use fallback coordinates if not provided
+            lat = getattr(person, 'latitude', 10.8231)
+            lon = getattr(person, 'longitude', 106.6297)
+            return self._generate_natal_without_time(person, lat, lon)
+
+    def _calculate_compatibility_aspects(self, chart_a, chart_b) -> list[PlanetaryAspect]:
+        """Calculate planetary aspects between two charts"""
+        aspects = []
+        
+        # Major planet combinations
+        major_planets = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"]
+        
+        for planet_a in chart_a.planets:
+            if planet_a.name not in major_planets:
+                continue
+                
+            for planet_b in chart_b.planets:
+                if planet_b.name not in major_planets:
+                    continue
+                
+                # Calculate aspect
+                aspect = self._calculate_aspect(planet_a, planet_b)
+                if aspect:
+                    aspects.append(aspect)
+        
+        return aspects
+
+    def _calculate_aspect(self, planet_a, planet_b) -> PlanetaryAspect:
+        """Calculate aspect between two planets"""
+        # Calculate longitude difference
+        diff = abs(planet_a.longitude - planet_b.longitude)
+        if diff > 180:
+            diff = 360 - diff
+        
+        # Determine aspect type and harmony
+        aspect_type = None
+        harmony = "Medium"
+        weight = 1.0
+        
+        if diff < 8:  # Conjunction
+            aspect_type = "Conjunction"
+            harmony = "Challenging"
+            weight = 2.0
+        elif abs(diff - 60) < 6:  # Sextile
+            aspect_type = "Sextile"
+            harmony = "High"
+            weight = 1.5
+        elif abs(diff - 90) < 6:  # Square
+            aspect_type = "Square"
+            harmony = "Challenging"
+            weight = 1.8
+        elif abs(diff - 120) < 6:  # Trine
+            aspect_type = "Trine"
+            harmony = "High"
+            weight = 2.0
+        elif abs(diff - 180) < 8:  # Opposition
+            aspect_type = "Opposition"
+            harmony = "Challenging"
+            weight = 1.5
+        
+        if aspect_type:
+            description = self._get_aspect_description(planet_a.name, planet_b.name, aspect_type)
+            return PlanetaryAspect(
+                aspect=f"{planet_a.name} {aspect_type} {planet_b.name}",
+                description=description,
+                harmonyLevel=harmony,
+                weight=weight
+            )
+        return None
+
+    def _get_aspect_description(self, planet_a, planet_b, aspect_type) -> str:
+        """Get descriptive text for planetary aspect"""
+        descriptions = {
+            "Conjunction": f"Sự kết hợp mạnh mẽ giữa {planet_a} và {planet_b} tạo nên năng lượng tập trung.",
+            "Sextile": f"{planet_a} và {planet_b} tạo thành góc sáu, mang lại cơ hội phát triển hài hòa.",
+            "Square": f"Căng thẳng giữa {planet_a} và {planet_b} tạo ra thách thức cần vượt qua.",
+            "Trine": f"Dòng năng lượng chảy tự nhiên giữa {planet_a} và {planet_b}, tạo sự thuận lợi.",
+            "Opposition": f"Sự đối lập giữa {planet_a} và {planet_b} cần được cân bằng và hòa giải."
+        }
+        return descriptions.get(aspect_type, f"Tương tác giữa {planet_a} và {planet_b}")
+
+    def _generate_fallback_aspects(self, chart_a, chart_b, existing_aspects) -> list[PlanetaryAspect]:
+        """Generate fallback aspects when not enough aspects calculated"""
+        fallback_aspects = []
+        
+        # Add Sun vs Sun
+        sun_a = next((p for p in chart_a.planets if p.name == "Sun"), None)
+        sun_b = next((p for p in chart_b.planets if p.name == "Sun"), None)
+        if sun_a and sun_b:
+            aspect = self._calculate_aspect(sun_a, sun_b)
+            if aspect and aspect.aspect not in [a.aspect for a in existing_aspects]:
+                fallback_aspects.append(aspect)
+        
+        # Add Venus vs Venus
+        venus_a = next((p for p in chart_a.planets if p.name == "Venus"), None)
+        venus_b = next((p for p in chart_b.planets if p.name == "Venus"), None)
+        if venus_a and venus_b:
+            aspect = self._calculate_aspect(venus_a, venus_b)
+            if aspect and aspect.aspect not in [a.aspect for a in existing_aspects]:
+                fallback_aspects.append(aspect)
+        
+        # Add Mars vs Mars
+        mars_a = next((p for p in chart_a.planets if p.name == "Mars"), None)
+        mars_b = next((p for p in chart_b.planets if p.name == "Mars"), None)
+        if mars_a and mars_b:
+            aspect = self._calculate_aspect(mars_a, mars_b)
+            if aspect and aspect.aspect not in [a.aspect for a in existing_aspects]:
+                fallback_aspects.append(aspect)
+        
+        # Add element compatibility
+        element_a = SIGN_TRAITS.get(chart_a.sun_sign, "").split("|")[0]
+        element_b = SIGN_TRAITS.get(chart_b.sun_sign, "").split("|")[0]
+        if element_a and element_b:
+            element_compatibility = self._get_element_compatibility(element_a, element_b)
+            fallback_aspects.append(PlanetaryAspect(
+                aspect=f"Element {element_a} vs {element_b}",
+                description=element_compatibility,
+                harmonyLevel="Medium",
+                weight=1.0
+            ))
+        
+        # Add modality compatibility
+        modality_a = self._get_sign_modality(chart_a.sun_sign)
+        modality_b = self._get_sign_modality(chart_b.sun_sign)
+        if modality_a and modality_b:
+            modality_compatibility = self._get_modality_compatibility(modality_a, modality_b)
+            fallback_aspects.append(PlanetaryAspect(
+                aspect=f"Modality {modality_a} vs {modality_b}",
+                description=modality_compatibility,
+                harmonyLevel="Medium",
+                weight=1.0
+            ))
+        
+        return fallback_aspects
+
+    def _get_element_compatibility(self, element_a: str, element_b: str) -> str:
+        """Get element compatibility description"""
+        if element_a == element_b:
+            return "Cùng nguyên tố tạo nên sự thấu hiểu sâu sắc và đồng điệu về bản chất."
+        elif {element_a, element_b} in [{"Fire", "Air"}, {"Water", "Earth"}]:
+            return "Tương sinh tự nhiên, bổ sung và nuôi dưỡng lẫn nhau."
+        elif {element_a, element_b} in [{"Fire", "Water"}, {"Air", "Earth"}]:
+            return "Tương khắc cần học cách dung hòa và chuyển hóa năng lượng."
+        else:
+            return "Khác biệt tạo cơ hội học hỏi và phát triển từ nhau."
+
+    def _get_sign_modality(self, sign: str) -> str:
+        """Get sign modality (Cardinal, Fixed, Mutable)"""
+        cardinal = ["Aries", "Cancer", "Libra", "Capricorn"]
+        fixed = ["Taurus", "Leo", "Scorpio", "Aquarius"]
+        mutable = ["Gemini", "Virgo", "Sagittarius", "Pisces"]
+        
+        if sign in cardinal:
+            return "Cardinal"
+        elif sign in fixed:
+            return "Fixed"
+        elif sign in mutable:
+            return "Mutable"
+        return "Unknown"
+
+    def _get_modality_compatibility(self, modality_a: str, modality_b: str) -> str:
+        """Get modality compatibility description"""
+        if modality_a == modality_b:
+            return "Cùng cách tiếp cận, dễ dàng đồng bộ hóa mục tiêu và phương pháp."
+        elif {modality_a, modality_b} == {"Cardinal", "Fixed"}:
+            return "Xung đột giữa người khởi xướng và người bảo thủ, cần học cách nhượng bộ."
+        elif {modality_a, modality_b} == {"Cardinal", "Mutable"}:
+            return "Sự linh hoạt gặp gỡ năng lượng sáng tạo, tạo nên sự kết hợp năng động."
+        else:  # Fixed vs Mutable
+            return "Sự ổn định gặp sự thay đổi, cần tìm điểm cân bằng giữa giữ gìn và thích nghi."
+
+    def _calculate_compatibility_scores(self, chart_a, chart_b) -> CompatibilityScores:
+        """Calculate detailed compatibility scores"""
+        # Base element score
+        base_score = self._element_score(chart_a.sun_sign, chart_b.sun_sign)
+        
+        # Calculate specific scores
+        personality = base_score
+        love = self._element_score(
+            self._get_planet_sign(chart_a, "Venus") or chart_a.sun_sign,
+            self._get_planet_sign(chart_b, "Venus") or chart_b.sun_sign
+        )
+        work = self._element_score(
+            self._get_planet_sign(chart_a, "Mercury") or chart_a.sun_sign,
+            self._get_planet_sign(chart_b, "Mercury") or chart_b.sun_sign
+        )
+        dynamics = self._calculate_dynamics_score(chart_a, chart_b)
+        conflict = self._calculate_conflict_score(chart_a, chart_b)
+        
+        return CompatibilityScores(
+            personality=personality,
+            love=love,
+            work=work,
+            dynamics=dynamics,
+            conflict=conflict
+        )
+
+    def _calculate_dynamics_score(self, chart_a, chart_b) -> int:
+        """Calculate relationship dynamics score"""
+        # Consider Mars positions for dynamic energy
+        mars_a = self._get_planet_sign(chart_a, "Mars") or chart_a.sun_sign
+        mars_b = self._get_planet_sign(chart_b, "Mars") or chart_b.sun_sign
+        return self._element_score(mars_a, mars_b)
+
+    def _calculate_conflict_score(self, chart_a, chart_b) -> int:
+        """Calculate conflict potential score (lower is better)"""
+        # Consider challenging aspects
+        element_a = SIGN_TRAITS.get(chart_a.sun_sign, "").split("|")[0]
+        element_b = SIGN_TRAITS.get(chart_b.sun_sign, "").split("|")[0]
+        
+        if {element_a, element_b} in [{"Fire", "Water"}, {"Air", "Earth"}]:
+            return 30  # High conflict potential
+        elif element_a == element_b:
+            return 70  # Low conflict potential
+        else:
+            return 50  # Medium conflict potential
+
+    def _build_personality_analysis(self, chart_a, chart_b, scores) -> CompatibilityPersonality:
+        """Build personality compatibility analysis"""
+        strengths = [
+            "Sự thấu hiểu bản chất cốt lõi thông qua năng lượng Mặt Trời",
+            "Khả năng đồng cảm và chia sẻ cảm xúc sâu sắc",
+            "Tư duy tương thích trong cách nhìn nhận thế giới"
+        ]
+        
+        challenges = [
+            "Sự khác biệt trong cách thể hiện cảm xúc",
+            "Xung đột giữa nhu cầu cá nhân và nhu cầu chung",
+            "Khác biệt trong cách xử lý áp lực và căng thẳng"
+        ]
+        
+        advice = "Hãy dành thời gian để thấu hiểu điểm mạnh và điểm yếu của nhau. Sự khác biệt không phải là rào cản mà là cơ hội để học hỏi và phát triển cùng nhau."
+
+        return CompatibilityPersonality(
+            summary=f"Tương thích tính cách ở mức {scores.personality}/100",
+            strengths=strengths,
+            challenges=challenges,
+            advice=advice
+        )
+
+    def _build_love_analysis(self, chart_a, chart_b, aspects) -> CompatibilityLove:
+        """Build love compatibility analysis"""
+        emotional_connection = "Mối liên kết cảm xúc được xây dựng trên nền tảng thấu hiểu và chia sẻ."
+        attraction = "Sự thu hút đến từ sự bổ sung và tương phản lành mạnh giữa hai cá tính."
+        long_term_potential = "Tiềm năng lâu dài phụ thuộc vào khả năng thích nghi và compromise."
+
+        return CompatibilityLove(
+            emotionalConnection=emotional_connection,
+            attraction=attraction,
+            longTermPotential=long_term_potential
+        )
+
+    def _build_work_analysis(self, chart_a, chart_b, aspects) -> CompatibilityWork:
+        """Build work compatibility analysis"""
+        teamwork = "Khả năng làm việc nhóm được hỗ trợ bởi sự tương thích trong tư duy và phương pháp."
+        leadership_dynamic = "Động lực lãnh đạo được phân bổ hợp lý dựa trên điểm mạnh của mỗi người."
+        risk_factors = "Các yếu tố rủi ro bao gồm sự khác biệt trong cách ra quyết định và quản lý thời gian."
+
+        return CompatibilityWork(
+            teamwork=teamwork,
+            leadershipDynamic=leadership_dynamic,
+            riskFactors=risk_factors
+        )
+
+    def _build_relationship_dynamics(self, chart_a, chart_b, aspects) -> CompatibilityRelationshipDynamics:
+        """Build relationship dynamics analysis"""
+        core_theme = "Chủ đề cốt lõi của mối quan hệ là sự học hỏi và phát triển qua những khác biệt."
+        karmic_factor = "Yếu tố nghiệp chướng thể hiện qua những bài học cần vượt qua để đạt được sự thấu hiểu."
+        growth_lesson = "Bài học trưởng thành nằm ở việc chấp nhận và trân trọng sự khác biệt như một món quà."
+
+        return CompatibilityRelationshipDynamics(
+            coreTheme=core_theme,
+            karmicFactor=karmic_factor,
+            growthLesson=growth_lesson
+        )
+
+    def _build_conflict_points(self, chart_a, chart_b, aspects) -> CompatibilityConflictPoints:
+        """Build conflict points analysis"""
+        triggers = [
+            "Sự khác biệt trong cách thể hiện cảm xúc",
+            "Xung đột giữa nhu cầu độc lập và nhu cầu gắn kết",
+            "Khác biệt trong cách xử lý vấn đề và ra quyết định"
+        ]
+        
+        resolution_advice = "Khi xung đột xảy ra, hãy tập trung vào việc thấu hiểu nguyên nhân sâu xa thay vì chỉ phản ứng với biểu hiện bề ngoài."
+
+        return CompatibilityConflictPoints(
+            triggers=triggers,
+            resolutionAdvice=resolution_advice
+        )
+
+    def _generate_detailed_compatibility_analysis(self, chart_a, chart_b, aspects, scores) -> str:
+        """Generate comprehensive compatibility analysis (300+ words)"""
+        analysis = f"""
+Phân tích tương thích chi tiết:
+
+Mối quan hệ giữa {chart_a.name or 'Person A'} và {chart_b.name or 'Person B'} được xây dựng trên nền tảng của {len(aspects)} tương tác hành tinh quan trọng. Với điểm số tổng thể {scores.personality}/100, đây là một mối quan hệ có tiềm năng phát triển mạnh mẽ nếu cả hai cùng nỗ lực.
+
+Về mặt tính cách, hai bạn có mức độ tương thích {scores.personality}/100, cho thấy sự hòa hợp trong những giá trị cốt lõi và cách nhìn nhận thế giới. Tuy nhiên, cũng tồn tại những khác biệt cần được thấu hiểu và trân trọng. Sự khác biệt này không phải là rào cản mà là cơ hội để cả hai học hỏi và phát triển từ nhau.
+
+Trong tình yêu, mức độ tương thích {scores.love}/100 cho thấy tiềm năng cảm xúc sâu sắc. Các hành tinh Kim Tinh (Venus) trong hai bản đồ sao tạo nên nền tảng cho sự thu hút và kết nối cảm xúc. Tuy nhiên, để duy trì ngọn lửa tình yêu, cả hai cần học cách thể hiện và đáp lại tình cảm theo cách mà đối phương mong đợi.
+
+Trong công việc, điểm số {scores.work}/100 cho thấy khả năng hợp tác tốt. Sự tương thích trong cách tư duy và tiếp cận vấn đề giúp hai bạn có thể cùng nhau đạt được những mục tiêu chung. Tuy nhiên, cần lưu ý đến những khác biệt trong phong cách làm việc để tránh xung đột không cần thiết.
+
+Động lực mối quan hệ ở mức {scores.dynamics}/100 cho thấy năng lượng tương tác tích cực. Các hành tinh Hỏa Tinh (Mars) tạo nên động lực thúc đẩy mối quan hệ phát triển. Tuy nhiên, cũng cần lưu ý đến những xung đột tiềm ẩn ở mức {scores.conflict}/100.
+
+Để phát triển mối quan hệ bền vững, cả hai cần:
+1. Học cách thấu hiểu và chấp nhận sự khác biệt
+2. Giao tiếp cởi mở và trung thực
+3. Cùng nhau đặt ra những mục tiêu chung
+4. Biết compromise khi cần thiết
+5. Dành thời gian để nuôi dưỡng cảm xúc và sự gắn kết
+
+Mối quan hệ này có tiềm năng trở thành một partnership bền vững nếu cả hai cùng cam kết nỗ lực và học hỏi từ những thách thức.
+"""
+        return analysis.strip()
+
     def _get_planet_sign(self, chart: NatalChart, planet_name: str) -> Optional[str]:
         """Get sign for a specific planet"""
         for planet in chart.planets:
