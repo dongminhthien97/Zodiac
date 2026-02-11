@@ -106,10 +106,24 @@ def compatibility_new(raw_payload: dict = Body(...)) -> CompatibilityResponseNew
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
     astrology = AstrologyService()
+    geocoder = GeocodingService()
+
+    # Get coordinates for both people (best-effort; compatibility can still be computed without houses)
+    lat_a, lon_a, addr_a = geocoder.geocode(payload.person_a.birth_place)
+    lat_b, lon_b, addr_b = geocoder.geocode(payload.person_b.birth_place)
+    logger.info(f"Geocoding results (compatibility/new) - Person A: lat={lat_a}, lon={lon_a}, addr={addr_a}")
+    logger.info(f"Geocoding results (compatibility/new) - Person B: lat={lat_b}, lon={lon_b}, addr={addr_b}")
     
     # Calculate compatibility with new system
     try:
-        response = astrology.calculate_compatibility_new(payload.person_a, payload.person_b)
+        response = astrology.calculate_compatibility_new(
+            payload.person_a,
+            payload.person_b,
+            lat_a=lat_a,
+            lon_a=lon_a,
+            lat_b=lat_b,
+            lon_b=lon_b,
+        )
         logger.info(f"New compatibility calculation successful")
         
         # Try to save to database, but don't fail the request if it fails
@@ -232,3 +246,85 @@ def natal_standard(raw_payload: dict = Body(...)) -> StandardReportResponse:
     chart = astrology.build_natal_chart(payload.person, lat, lon)
     return astrology.build_standard_report(chart, payload.person)
 
+
+@router.post("/compatibility/professional", response_model=CompatibilityResponseNew)
+def compatibility_professional(raw_payload: dict = Body(...)) -> CompatibilityResponseNew:
+    """Professional compatibility analysis with 1000+ words detailed analysis"""
+    try:
+        payload = CompatibilityRequest.model_validate(raw_payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    astrology = AstrologyService()
+    geocoder = GeocodingService()
+    
+    # Get coordinates for both people
+    lat_a, lon_a, _ = geocoder.geocode(payload.person_a.birth_place)
+    lat_b, lon_b, _ = geocoder.geocode(payload.person_b.birth_place)
+    
+    # Calculate compatibility with professional analysis
+    try:
+        response = astrology.calculate_compatibility_new(
+            payload.person_a, payload.person_b,
+            lat_a=lat_a, lon_a=lon_a, lat_b=lat_b, lon_b=lon_b
+        )
+        
+        # Generate professional analysis if aspects are available
+        if hasattr(response, 'planetaryAspects') and response.planetaryAspects:
+            # Build chart data for professional analysis
+            person_a_data = {
+                'sun': {'sign': response.personality.summary.split(':')[1].split('/')[0].strip()},
+                'moon': {'sign': response.personality.strengths[1].split(':')[1].strip()},
+                'mercury': {'sign': response.work.teamwork.split(':')[1].strip()},
+                'venus': {'sign': response.love.emotionalConnection.split(':')[1].strip()},
+                'mars': {'sign': response.work.leadershipDynamic.split(':')[1].strip()},
+                'ascendant': {'sign': response.personality.summary.split(':')[1].split('/')[0].strip()}
+            }
+            
+            person_b_data = {
+                'sun': {'sign': response.personality.summary.split(':')[1].split('/')[0].strip()},
+                'moon': {'sign': response.personality.strengths[1].split(':')[1].strip()},
+                'mercury': {'sign': response.work.teamwork.split(':')[1].strip()},
+                'venus': {'sign': response.love.emotionalConnection.split(':')[1].strip()},
+                'mars': {'sign': response.work.leadershipDynamic.split(':')[1].strip()},
+                'ascendant': {'sign': response.personality.summary.split(':')[1].split('/')[0].strip()}
+            }
+            
+            # Convert aspects to list format
+            aspects_list = [aspect.aspect for aspect in response.planetaryAspects]
+            
+            # Generate professional analysis
+            professional_analysis = astrology.generate_professional_compatibility_analysis(
+                person_a_data, person_b_data, aspects_list
+            )
+            
+            # Replace the detailed analysis with professional version
+            response.detailedAnalysis = professional_analysis
+        
+        logger.info(f"Professional compatibility analysis successful")
+        
+        # Try to save to database, but don't fail the request if it fails
+        try:
+            supabase = get_supabase_client()
+            if supabase:
+                supabase.table("compatibility_checks").insert(
+                    {
+                        "person_a_name": payload.person_a.name,
+                        "person_b_name": payload.person_b.name,
+                        "person_a_place": payload.person_a.birth_place,
+                        "person_b_place": payload.person_b.birth_place,
+                        "score": response.scores.personality,
+                        "created_at": "now()",
+                    }
+                ).execute()
+        except Exception as e:
+            logger.warning(f"Database save failed: {e}")
+        
+        return response
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Professional compatibility analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="Professional compatibility analysis failed")
