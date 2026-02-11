@@ -10,6 +10,7 @@ from models.schemas import (
 )
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService
+from services.ai_service import get_global_ai_service
 from supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ router = APIRouter(tags=["astrology"])
 
 
 @router.post("/compatibility", response_model=CompatibilityResponse)
-def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
+async def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
     """Calculate compatibility between two people with fault-tolerant chart generation"""
     try:
         payload = CompatibilityRequest.model_validate(raw_payload)
@@ -75,8 +76,126 @@ def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
             detailed_reasoning="Lý do chi tiết không khả dụng do thiếu dữ liệu"
         )
 
+    # Generate AI report using Groq API
+    try:
+        # Build structured analysis data for Groq
+        analysis_data = {
+            "person_a": {
+                "sun": chart_a.sun_sign,
+                "moon": chart_a.moon_sign or chart_a.sun_sign,
+                "mercury": astrology._get_planet_sign(chart_a, "Mercury") or chart_a.sun_sign,
+                "venus": astrology._get_planet_sign(chart_a, "Venus") or chart_a.sun_sign,
+                "mars": astrology._get_planet_sign(chart_a, "Mars") or chart_a.sun_sign,
+                "ascendant": chart_a.ascendant or chart_a.sun_sign
+            },
+            "person_b": {
+                "sun": chart_b.sun_sign,
+                "moon": chart_b.moon_sign or chart_b.sun_sign,
+                "mercury": astrology._get_planet_sign(chart_b, "Mercury") or chart_b.sun_sign,
+                "venus": astrology._get_planet_sign(chart_b, "Venus") or chart_b.sun_sign,
+                "mars": astrology._get_planet_sign(chart_b, "Mars") or chart_b.sun_sign,
+                "ascendant": chart_b.ascendant or chart_b.sun_sign
+            },
+            "aspects": details.aspects,
+            "score": details.score,
+            "fallback_mode": lat_a is None or lon_a is None or lat_b is None or lon_b is None
+        }
+        
+        # Build comprehensive prompt for Groq
+        prompt = f"""Hãy phân tích sự tương thích chi tiết giữa hai bản đồ sao sau đây:
+
+**Thông tin hai người:**
+- Người A: Mặt Trời {analysis_data['person_a']['sun']}, Mặt Trăng {analysis_data['person_a']['moon']}, Thủy Tinh {analysis_data['person_a']['mercury']}, Kim Tinh {analysis_data['person_a']['venus']}, Hỏa Tinh {analysis_data['person_a']['mars']}, Cung Mọc {analysis_data['person_a']['ascendant']}
+- Người B: Mặt Trời {analysis_data['person_b']['sun']}, Mặt Trăng {analysis_data['person_b']['moon']}, Thủy Tinh {analysis_data['person_b']['mercury']}, Kim Tinh {analysis_data['person_b']['venus']}, Hỏa Tinh {analysis_data['person_b']['mars']}, Cung Mọc {analysis_data['person_b']['ascendant']}
+
+**Các aspect quan trọng:** {', '.join(analysis_data['aspects'])}
+
+{f'⚠️ Lưu ý: Phân tích ở chế độ fallback (thiếu giờ sinh), một số tính toán có thể không chính xác hoàn toàn.' if analysis_data['fallback_mode'] else 'Phân tích với đầy đủ thông tin giờ sinh.'}
+
+**Yêu cầu phân tích chi tiết (ít nhất 1000 từ):**
+
+1. **Sự tương thích về cảm xúc (Emotional Compatibility):**
+   - Phân tích Mặt Trăng {analysis_data['person_a']['moon']} và Mặt Trăng {analysis_data['person_b']['moon']}
+   - Cách hai người đáp ứng nhu cầu cảm xúc của nhau
+   - Khả năng tạo môi trường cảm xúc an toàn
+
+2. **Sức hút và tình yêu (Romantic Attraction):**
+   - Phân tích Kim Tinh {analysis_data['person_a']['venus']} và Kim Tinh {analysis_data['person_b']['venus']}
+   - Cách thể hiện tình yêu và đam mê
+   - Sự hấp dẫn tình dục và hóa học
+
+3. **Giao tiếp và tư duy (Communication):**
+   - Phân tích Thủy Tinh {analysis_data['person_a']['mercury']} và Thủy Tinh {analysis_data['person_b']['mercury']}
+   - Cách trao đổi ý tưởng và giải quyết bất đồng
+   - Phong cách giao tiếp hàng ngày
+
+4. **Xung đột và thách thức (Conflict):**
+   - Những điểm xung đột tiềm ẩn
+   - Cách xử lý mâu thuẫn
+   - Cơ chế phòng vệ và phản ứng khi căng thẳng
+
+5. **Ổn định lâu dài (Long-term Stability):**
+   - Khả năng duy trì mối quan hệ
+   - Sự phù hợp về giá trị và mục tiêu sống
+   - Tiềm năng phát triển cùng nhau
+
+6. **Phân tích hành tinh cụ thể:**
+   - Tác động của từng cặp hành tinh quan trọng
+   - Cách các aspect ảnh hưởng đến mối quan hệ
+   - Cơ hội và thách thức từ các vị trí hành tinh
+
+7. **Phát triển bản thân (Growth Path):**
+   - Bài học mà mỗi người có thể học được từ nhau
+   - Cách hỗ trợ sự phát triển cá nhân
+   - Cơ hội trưởng thành tâm hồn
+
+8. **Lời khuyên thực tế (Practical Advice):**
+   - Cách nuôi dưỡng mối quan hệ
+   - Chiến lược giải quyết xung đột
+   - Phương pháp duy trì sự hấp dẫn lâu dài
+
+**Yêu cầu:**
+- Sử dụng ngôn ngữ chuyên nghiệp, giàu chiều sâu tâm lý
+- Cung cấp ví dụ cụ thể và thiết thực
+- Phân tích chi tiết từng khía cạnh
+- Đưa ra lời khuyên thực tế và khả thi
+- Tổng cộng ít nhất 1000 từ
+- Định dạng markdown chuyên nghiệp
+
+Hãy cung cấp một bản phân tích toàn diện, sâu sắc và thực tế."""
+        
+        # Generate AI report using Groq API
+        ai_service_instance = get_global_ai_service()
+        if ai_service_instance:
+            ai_report = await ai_service_instance.generate_long_report(prompt, min_words=1000)
+        else:
+            ai_report = "Phân tích AI không khả dụng do thiếu cấu hình API"
+        
+        logger.info(f"✅ Groq AI report generated successfully. Length: {len(ai_report)} characters")
+        
+    except Exception as e:
+        logger.error(f"❌ Groq AI report generation failed: {e}")
+        # Fallback to error message but don't fail the entire request
+        ai_report = f"""**LỖI PHÂN TÍCH AI**
+
+Phân tích AI không thể được tạo do lỗi hệ thống. Vui lòng thử lại sau.
+
+**Chi tiết lỗi:** {str(e)}
+
+**Thông tin cơ bản vẫn khả dụng:**
+- Điểm tương thích: {details.score}/100
+- Tóm tắt: {details.summary}
+- Lời khuyên: {details.advice}"""
+        logger.warning("⚠️ Using fallback AI report due to Groq API failure")
+
     generated_at = datetime.now(timezone.utc).isoformat()
-    response = CompatibilityResponse(generated_at=generated_at, person_a=chart_a, person_b=chart_b, details=details)
+    response = CompatibilityResponse(
+        generated_at=generated_at, 
+        person_a=chart_a, 
+        person_b=chart_b, 
+        details=details,
+        full_report=ai_report  # Add the AI-generated report
+    )
 
     # Try to save to database, but don't fail the request if it fails
     try:

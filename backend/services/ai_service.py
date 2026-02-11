@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 import logging
 import httpx
 import asyncio
@@ -9,8 +8,8 @@ import re
 logger = logging.getLogger(__name__)
 
 class AIService:
-    def __init__(self) -> None:
-        self.api_key = os.getenv("GROQ_API_KEY")
+    def __init__(self, api_key: str) -> None:
+        self.api_key = api_key
         if not self.api_key:
             raise ValueError("GROQ_API_KEY environment variable is required")
         
@@ -161,5 +160,27 @@ For a more detailed analysis, please request a longer report.
         return f"{content}\n{warning}"
 
 
-# Global AI service instance
-ai_service = AIService()
+# Factory function to create AI service instance
+def get_ai_service():
+    """Create and return an AI service instance with proper error handling"""
+    from core.config import settings
+    
+    if not settings.GROQ_API_KEY:
+        logger.warning("GROQ_API_KEY not configured - AI features will be disabled")
+        return None
+    
+    try:
+        return AIService(settings.GROQ_API_KEY)
+    except Exception as e:
+        logger.error(f"Failed to initialize AI service: {e}")
+        return None
+
+# Global AI service instance (lazy initialization)
+_ai_service_instance = None
+
+def get_global_ai_service():
+    """Get or create the global AI service instance"""
+    global _ai_service_instance
+    if _ai_service_instance is None:
+        _ai_service_instance = get_ai_service()
+    return _ai_service_instance

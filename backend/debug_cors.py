@@ -8,9 +8,6 @@ from routers.astrology import router as astrology_router
 from routers.chart import router as chart_router
 from routers.zodiac_ai import router as zodiac_ai_router
 
-# Import config and startup logging
-from core.config import settings, log_startup_info
-
 # Configure logging
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -23,13 +20,22 @@ app = FastAPI(
     description="API for astrology compatibility analysis and natal chart generation"
 )
 
-# CORS configuration
+# CORS configuration with debug logging
 raw_origins = os.getenv(
     "CORS_ALLOW_ORIGINS",
     "https://zodiacs-jet.vercel.app,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
 )
 allow_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 allow_credentials = os.getenv("CORS_ALLOW_CREDENTIALS", "false").lower() == "true"
+
+# Debug logging
+print(f"🔍 CORS DEBUG INFO:")
+print(f"  - CORS_ALLOW_ORIGINS env var: {os.getenv('CORS_ALLOW_ORIGINS', 'NOT_SET')}")
+print(f"  - Parsed allow_origins: {allow_origins}")
+print(f"  - CORS_ALLOW_CREDENTIALS env var: {os.getenv('CORS_ALLOW_CREDENTIALS', 'NOT_SET')}")
+print(f"  - allow_credentials: {allow_credentials}")
+print(f"  - Runtime allow_origins: {allow_origins}")
+print(f"  - Runtime allow_credentials: {allow_credentials}")
 
 # CORS note:
 # - Browsers reject responses when `allow_credentials=True` with wildcard origins.
@@ -41,9 +47,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Log startup information
-log_startup_info()
 
 # Mount routers
 app.include_router(astrology_router, prefix="/api")
@@ -59,3 +62,15 @@ def healthcheck() -> dict:
 def health() -> dict:
     """Alternative health check endpoint"""
     return {"status": "healthy", "service": "zodiac-compatibility-checker"}
+
+@app.get("/cors-debug")
+def cors_debug() -> dict:
+    """Debug endpoint to check CORS configuration"""
+    return {
+        "cors_allow_origins": allow_origins,
+        "cors_allow_credentials": allow_credentials,
+        "cors_allow_methods": ["*"],
+        "cors_allow_headers": ["*"],
+        "env_cors_allow_origins": os.getenv('CORS_ALLOW_ORIGINS', 'NOT_SET'),
+        "env_cors_allow_credentials": os.getenv('CORS_ALLOW_CREDENTIALS', 'NOT_SET')
+    }
