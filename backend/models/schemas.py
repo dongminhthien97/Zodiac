@@ -265,3 +265,17 @@ class CompatibilityResponseNew(BaseModel):
     planetaryAspects: list[PlanetaryAspect]
     detailedAnalysis: str
 
+
+class AICompatibilityReportRequest(BaseModel):
+    person_a: dict
+    person_b: dict
+    aspects: list = []
+    fallback_mode: bool = False
+
+
+class AICompatibilityReportResponse(BaseModel):
+    success: bool
+    wordCount: int
+    report: str
+    model: str
+

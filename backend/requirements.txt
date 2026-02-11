@@ -19,3 +19,6 @@ openai>=1.3.7  # OpenAI API integration
 
 # Utilities
 python-dotenv>=1.0.0  # Environment variable management
+
+# HTTP client for async requests
+httpx>=0.27.0  # Async HTTP client for Groq API

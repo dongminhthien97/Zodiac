@@ -9,11 +9,14 @@ from typing import Optional
 import traceback
 import pytz
 import swisseph as swe
+from fastapi import HTTPException
 
 from models.schemas import (
     BirthInfo, CompatibilityDetails, NatalChart, PlanetPosition,
     NatalResponse, ResponseMeta, ZodiacMeta, ResultSection, ResultSectionId,
-    InsightBlock, InsightBlockType, InsightEmphasis, StandardReportResponse
+    InsightBlock, InsightBlockType, InsightEmphasis, StandardReportResponse,
+    PlanetaryAspect, CompatibilityScores, CompatibilityPersonality, CompatibilityLove,
+    CompatibilityWork, CompatibilityRelationshipDynamics, CompatibilityConflictPoints
 )
 from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIGN_RANGES
 import google.genai as genai
@@ -50,10 +53,10 @@ try:
         kerykeion_settings.GEONAMES_USERNAME = GEONAMES_USER
 
     try:
-        from kerykeion.charts.kerykeion_chart_svg import KerykeionChartSVG
+        from kerykeion.charts import KerykeionChartSVG
     except ImportError:
         try:
-            from kerykeion.chart import KerykeionChartSVG
+            from kerykeion import KerykeionChartSVG
         except ImportError:
             KerykeionChartSVG = None
 
@@ -1202,6 +1205,8 @@ Cung Mọc {asc_a} và {asc_b} đại diện cho "chiếc mặt nạ" mà hai ng
         element_venus_b = SIGN_TRAITS.get(venus_b, "").split("|")[0]
         element_mars_a = SIGN_TRAITS.get(mars_a, "").split("|")[0]
         element_mars_b = SIGN_TRAITS.get(mars_b, "").split("|")[0]
+        element_mercury_a = SIGN_TRAITS.get(mercury_a, "").split("|")[0]
+        element_mercury_b = SIGN_TRAITS.get(mercury_b, "").split("|")[0]
         
         # Determine overall element balance
         fire_count = sum([1 for e in [element_sun_a, element_sun_b, element_mars_a, element_mars_b] if e == "Fire"])

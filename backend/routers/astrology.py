@@ -5,7 +5,8 @@ import logging
 
 from models.schemas import (
     CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse, 
-    StandardReportResponse, CompatibilityResponseNew, CompatibilityDetails
+    StandardReportResponse, CompatibilityResponseNew, CompatibilityDetails,
+    AICompatibilityReportRequest, AICompatibilityReportResponse
 )
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService
@@ -353,3 +354,142 @@ def compatibility_ai(
     except Exception as e:
         logger.error(f"AI compatibility analysis failed: {e}")
         raise HTTPException(status_code=500, detail="AI compatibility analysis failed")
+
+
+@router.post("/compatibility/ai-report", response_model=AICompatibilityReportResponse)
+async def compatibility_ai_report(request: AICompatibilityReportRequest) -> AICompatibilityReportResponse:
+    """Generate AI compatibility report using Groq API with minimum 1000 words"""
+    try:
+        from services.ai_service import ai_service
+        
+        # Build comprehensive prompt
+        prompt = _build_compatibility_prompt(
+            request.person_a,
+            request.person_b,
+            request.aspects,
+            request.fallback_mode
+        )
+        
+        logger.info(f"Generating AI compatibility report with prompt length: {len(prompt)} characters")
+        
+        # Generate report using Groq API
+        report_content = await ai_service.generate_long_report(prompt, min_words=1000)
+        
+        # Count words in the final report
+        word_count = _count_words(report_content)
+        
+        logger.info(f"AI report generation completed. Final word count: {word_count}")
+        
+        return AICompatibilityReportResponse(
+            success=True,
+            wordCount=word_count,
+            report=report_content,
+            model=ai_service.model
+        )
+        
+    except httpx.TimeoutException as e:
+        logger.error(f"Groq API request timed out: {e}")
+        raise HTTPException(status_code=504, detail="AI service timeout - please try again")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Groq API returned error: {e}")
+        raise HTTPException(status_code=502, detail="AI service temporarily unavailable")
+    except Exception as e:
+        logger.error(f"AI compatibility report generation failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate AI compatibility report")
+
+
+def _build_compatibility_prompt(person_a: dict, person_b: dict, aspects: list, fallback_mode: bool) -> str:
+    """Build a comprehensive prompt for compatibility analysis"""
+    
+    # Extract signs
+    sun_a = person_a.get('sun', 'Unknown')
+    moon_a = person_a.get('moon', 'Unknown')
+    mercury_a = person_a.get('mercury', 'Unknown')
+    venus_a = person_a.get('venus', 'Unknown')
+    mars_a = person_a.get('mars', 'Unknown')
+    asc_a = person_a.get('ascendant', 'Unknown')
+    
+    sun_b = person_b.get('sun', 'Unknown')
+    moon_b = person_b.get('moon', 'Unknown')
+    mercury_b = person_b.get('mercury', 'Unknown')
+    venus_b = person_b.get('venus', 'Unknown')
+    mars_b = person_b.get('mars', 'Unknown')
+    asc_b = person_b.get('ascendant', 'Unknown')
+    
+    # Build prompt
+    prompt = f"""Hãy phân tích sự tương thích chi tiết giữa hai bản đồ sao sau đây:
+
+**Thông tin hai người:**
+- Người A: Mặt Trời {sun_a}, Mặt Trăng {moon_a}, Thủy Tinh {mercury_a}, Kim Tinh {venus_a}, Hỏa Tinh {mars_a}, Cung Mọc {asc_a}
+- Người B: Mặt Trời {sun_b}, Mặt Trăng {moon_b}, Thủy Tinh {mercury_b}, Kim Tinh {venus_b}, Hỏa Tinh {mars_b}, Cung Mọc {asc_b}
+
+**Các aspect quan trọng:** {', '.join(aspects) if aspects else 'Không có aspect cụ thể'}
+
+{f'⚠️ Lưu ý: Phân tích ở chế độ fallback (thiếu giờ sinh), một số tính toán có thể không chính xác hoàn toàn.' if fallback_mode else 'Phân tích với đầy đủ thông tin giờ sinh.'}
+
+**Yêu cầu phân tích chi tiết (ít nhất 1000 từ):**
+
+1. **Sự tương thích về cảm xúc (Emotional Compatibility):**
+   - Phân tích Mặt Trăng {moon_a} và Mặt Trăng {moon_b}
+   - Cách hai người đáp ứng nhu cầu cảm xúc của nhau
+   - Khả năng tạo môi trường cảm xúc an toàn
+
+2. **Sức hút và tình yêu (Romantic Attraction):**
+   - Phân tích Kim Tinh {venus_a} và Kim Tinh {venus_b}
+   - Cách thể hiện tình yêu và đam mê
+   - Sự hấp dẫn tình dục và hóa học
+
+3. **Giao tiếp và tư duy (Communication):**
+   - Phân tích Thủy Tinh {mercury_a} và Thủy Tinh {mercury_b}
+   - Cách trao đổi ý tưởng và giải quyết bất đồng
+   - Phong cách giao tiếp hàng ngày
+
+4. **Xung đột và thách thức (Conflict):**
+   - Những điểm xung đột tiềm ẩn
+   - Cách xử lý mâu thuẫn
+   - Cơ chế phòng vệ và phản ứng khi căng thẳng
+
+5. **Ổn định lâu dài (Long-term Stability):**
+   - Khả năng duy trì mối quan hệ
+   - Sự phù hợp về giá trị và mục tiêu sống
+   - Tiềm năng phát triển cùng nhau
+
+6. **Phân tích hành tinh cụ thể:**
+   - Tác động của từng cặp hành tinh quan trọng
+   - Cách các aspect ảnh hưởng đến mối quan hệ
+   - Cơ hội và thách thức từ các vị trí hành tinh
+
+7. **Phát triển bản thân (Growth Path):**
+   - Bài học mà mỗi người có thể học được từ nhau
+   - Cách hỗ trợ sự phát triển cá nhân
+   - Cơ hội trưởng thành tâm hồn
+
+8. **Lời khuyên thực tế (Practical Advice):**
+   - Cách nuôi dưỡng mối quan hệ
+   - Chiến lược giải quyết xung đột
+   - Phương pháp duy trì sự hấp dẫn lâu dài
+
+**Yêu cầu:**
+- Sử dụng ngôn ngữ chuyên nghiệp, giàu chiều sâu tâm lý
+- Cung cấp ví dụ cụ thể và thiết thực
+- Phân tích chi tiết từng khía cạnh
+- Đưa ra lời khuyên thực tế và khả thi
+- Tổng cộng ít nhất 1000 từ
+- Định dạng markdown chuyên nghiệp
+
+Hãy cung cấp một bản phân tích toàn diện, sâu sắc và thực tế."""
+    
+    return prompt
+
+
+def _count_words(text: str) -> int:
+    """Count words in text"""
+    import re
+    if not text:
+        return 0
+    words = re.findall(r'\b\w+\b', text)
+    return len(words)
+
+
+# Import httpx for error handling
+import httpx
