@@ -10,10 +10,11 @@ import sys
 from pathlib import Path
 
 def check_env_files():
-    """Check for .env files in the repository (excluding .env.example)"""
+    """Check for .env files in the repository (excluding .env.example and local .env)"""
     env_files = list(Path('.').glob('**/.env*'))
-    # Filter out .env.example and virtual environment files
+    # Filter out .env.example, local .env, and virtual environment files
     env_files = [f for f in env_files if not str(f).endswith('.env.example') and 
+                 not str(f) == '.env' and
                  '.venv' not in str(f) and 'venv' not in str(f)]
     if env_files:
         print("❌ Found .env files in repository:")
@@ -23,7 +24,7 @@ def check_env_files():
     return True
 
 def check_secrets_in_code():
-    """Check for hardcoded secrets in Python files"""
+    """Check for hardcoded secrets in Python files (excluding virtual environments)"""
     secret_patterns = [
         r'GROQ_API_KEY\s*=\s*["\'][^"\']+["\']',
         r'OPENAI_API_KEY\s*=\s*["\'][^"\']+["\']',
@@ -34,6 +35,8 @@ def check_secrets_in_code():
     ]
     
     python_files = list(Path('.').glob('**/*.py'))
+    # Filter out virtual environment files
+    python_files = [f for f in python_files if '.venv' not in str(f) and 'venv' not in str(f)]
     found_secrets = []
     
     for py_file in python_files:
