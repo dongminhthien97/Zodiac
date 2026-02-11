@@ -328,3 +328,28 @@ def compatibility_professional(raw_payload: dict = Body(...)) -> CompatibilityRe
     except Exception as e:
         logger.error(f"Professional compatibility analysis failed: {e}")
         raise HTTPException(status_code=500, detail="Professional compatibility analysis failed")
+
+
+@router.post("/compatibility/ai", response_model=dict)
+def compatibility_ai(
+    person_a: dict = Body(..., description="Person A chart data"),
+    person_b: dict = Body(..., description="Person B chart data"),
+    aspects: list = Body(..., description="List of planetary aspects"),
+    fallback_mode: bool = Body(False, description="Fallback mode flag")
+) -> dict:
+    """AI compatibility analysis with JSON output and >=1000 words"""
+    try:
+        astrology = AstrologyService()
+        
+        # Generate AI compatibility analysis
+        result = astrology.generate_ai_compatibility_analysis_json(
+            person_a, person_b, aspects, fallback_mode
+        )
+        
+        logger.info(f"AI compatibility analysis successful")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"AI compatibility analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="AI compatibility analysis failed")

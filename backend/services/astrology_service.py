@@ -1093,6 +1093,334 @@ Mối quan hệ này có tiềm năng trở thành một partnership bền vữn
         
         return analysis
 
+    def generate_ai_compatibility_analysis_json(
+        self,
+        person_a: dict,
+        person_b: dict,
+        aspects: list,
+        fallback_mode: bool = False
+    ) -> dict:
+        """
+        Generate AI compatibility analysis in JSON format with >=1000 words
+        Specialized for OpenAI Codex/GPT-4/GPT-5-Codex style output
+        """
+        # Extract signs
+        sun_a = person_a.get('sun', 'Unknown')
+        moon_a = person_a.get('moon', 'Unknown')
+        mercury_a = person_a.get('mercury', 'Unknown')
+        venus_a = person_a.get('venus', 'Unknown')
+        mars_a = person_a.get('mars', 'Unknown')
+        asc_a = person_a.get('ascendant', 'Unknown')
+        
+        sun_b = person_b.get('sun', 'Unknown')
+        moon_b = person_b.get('moon', 'Unknown')
+        mercury_b = person_b.get('mercury', 'Unknown')
+        venus_b = person_b.get('venus', 'Unknown')
+        mars_b = person_b.get('mars', 'Unknown')
+        asc_b = person_b.get('ascendant', 'Unknown')
+
+        # Calculate scores
+        scores = self._calculate_ai_compatibility_scores(
+            sun_a, sun_b, moon_a, moon_b, mercury_a, mercury_b,
+            venus_a, venus_b, mars_a, mars_b, asc_a, asc_b, aspects
+        )
+
+        # Generate sections
+        overview = self._generate_ai_overview(sun_a, sun_b, moon_a, moon_b, asc_a, asc_b, fallback_mode)
+        element_dynamics = self._generate_ai_element_dynamics(sun_a, sun_b, moon_a, moon_b, venus_a, venus_b, mars_a, mars_b)
+        planetary_aspects = self._generate_ai_planetary_aspects(aspects)
+        emotional_connection = self._generate_ai_emotional_connection(moon_a, moon_b, venus_a, venus_b, sun_a, sun_b)
+        romantic_attraction = self._generate_ai_romantic_attraction(venus_a, venus_b, mars_a, mars_b, asc_a, asc_b)
+        communication_style = self._generate_ai_communication_style(mercury_a, mercury_b, sun_a, sun_b, moon_a, moon_b)
+        conflict_dynamics = self._generate_ai_conflict_dynamics(sun_a, sun_b, moon_a, moon_b, mars_a, mars_b, fallback_mode)
+        long_term_potential = self._generate_ai_long_term_potential(sun_a, sun_b, moon_a, moon_b, venus_a, venus_b, asc_a, asc_b, aspects)
+        growth_advice = self._generate_ai_growth_advice(sun_a, sun_b, moon_a, moon_b, mercury_a, mercury_b, venus_a, venus_b, mars_a, mars_b, asc_a, asc_b, aspects, fallback_mode)
+        
+        # Generate comprehensive analysis text (>=1000 words)
+        analysis_text = self._generate_ai_comprehensive_analysis(
+            sun_a, sun_b, moon_a, moon_b, mercury_a, mercury_b, venus_a, venus_b, mars_a, mars_b, asc_a, asc_b,
+            aspects, scores, overview, element_dynamics, planetary_aspects, emotional_connection,
+            romantic_attraction, communication_style, conflict_dynamics, long_term_potential, growth_advice,
+            fallback_mode
+        )
+
+        return {
+            "scores": scores,
+            "overview": overview,
+            "elementDynamics": element_dynamics,
+            "planetaryAspectAnalysis": planetary_aspects,
+            "emotionalConnection": emotional_connection,
+            "romanticAttraction": romantic_attraction,
+            "communicationStyle": communication_style,
+            "conflictDynamics": conflict_dynamics,
+            "longTermPotential": long_term_potential,
+            "growthAdvice": growth_advice,
+            "analysisText": analysis_text
+        }
+
+    def _calculate_ai_compatibility_scores(
+        self, sun_a, sun_b, moon_a, moon_b, mercury_a, mercury_b,
+        venus_a, venus_b, mars_a, mars_b, asc_a, asc_b, aspects
+    ) -> dict:
+        """Calculate AI compatibility scores with detailed explanations"""
+        emotional_score = self._calculate_emotional_compatibility(moon_a, moon_b, venus_a, venus_b)
+        romantic_score = self._calculate_romantic_compatibility(venus_a, venus_b, mars_a, mars_b, sun_a, sun_b)
+        communication_score = self._calculate_communication_compatibility(mercury_a, mercury_b, sun_a, sun_b)
+        stability_score = self._calculate_stability_compatibility(sun_a, sun_b, moon_a, moon_b, asc_a, asc_b, aspects)
+        
+        return {
+            "emotionalCompatibility": emotional_score,
+            "romanticCompatibility": romantic_score,
+            "communicationCompatibility": communication_score,
+            "longTermStability": stability_score
+        }
+
+    def _generate_ai_overview(self, sun_a, sun_b, moon_a, moon_b, asc_a, asc_b, fallback_mode) -> str:
+        """Generate AI overview with fallback mode awareness"""
+        element_a = SIGN_TRAITS.get(sun_a, "").split("|")[0]
+        element_b = SIGN_TRAITS.get(sun_b, "").split("|")[0]
+        
+        overview = f"""Tổng quan năng lượng hai người:
+
+Mối quan hệ giữa {sun_a} và {sun_b} được xây dựng trên nền tảng năng lượng {element_a} và {element_b}, tạo nên một sự tương tác đặc biệt. Mặt Trời {sun_a} ({SIGN_TRAITS.get(sun_a, "").split("|")[1]}) đại diện cho bản chất cốt lõi và động lực sống của người A, trong khi Mặt Trời {sun_b} ({SIGN_TRAITS.get(sun_b, "").split("|")[1]}) thể hiện bản chất và mục tiêu sống của người B.
+
+Sự kết hợp này tạo nên một động lực mạnh mẽ, nơi mà {SIGN_TRAITS.get(sun_a, "").split("|")[1].lower()} của người A có thể {SIGN_TRAITS.get(sun_b, "").split("|")[1].lower()} người B, và ngược lại. Mặt Trăng {moon_a} và Mặt Trăng {moon_b} tiết lộ thế giới cảm xúc sâu kín, cho thấy cách hai người xử lý nhu cầu cảm xúc và tìm kiếm sự an toàn trong mối quan hệ.
+
+Cung Mọc {asc_a} và {asc_b} đại diện cho "chiếc mặt nạ" mà hai người thể hiện với thế giới, cũng như cách họ tiếp cận các mối quan hệ mới. Sự tương tác giữa các yếu tố này tạo nên một bức tranh toàn diện về tiềm năng và thách thức trong mối quan hệ này.
+
+{f'⚠️ Lưu ý: Phân tích được thực hiện ở chế độ fallback (thiếu giờ sinh), một số tính toán về Cung Mọc và các aspect có thể không chính xác hoàn toàn.' if fallback_mode else 'Phân tích được thực hiện với đầy đủ thông tin giờ sinh, đảm bảo độ chính xác cao trong các tính toán aspect và Cung Mọc.'}"""
+        
+        return overview
+
+    def _generate_ai_element_dynamics(self, sun_a, sun_b, moon_a, moon_b, venus_a, venus_b, mars_a, mars_b) -> str:
+        """Generate element dynamics analysis"""
+        element_sun_a = SIGN_TRAITS.get(sun_a, "").split("|")[0]
+        element_sun_b = SIGN_TRAITS.get(sun_b, "").split("|")[0]
+        element_moon_a = SIGN_TRAITS.get(moon_a, "").split("|")[0]
+        element_moon_b = SIGN_TRAITS.get(moon_b, "").split("|")[0]
+        element_venus_a = SIGN_TRAITS.get(venus_a, "").split("|")[0]
+        element_venus_b = SIGN_TRAITS.get(venus_b, "").split("|")[0]
+        element_mars_a = SIGN_TRAITS.get(mars_a, "").split("|")[0]
+        element_mars_b = SIGN_TRAITS.get(mars_b, "").split("|")[0]
+        
+        # Determine overall element balance
+        fire_count = sum([1 for e in [element_sun_a, element_sun_b, element_mars_a, element_mars_b] if e == "Fire"])
+        earth_count = sum([1 for e in [element_sun_a, element_sun_b, element_venus_a, element_venus_b] if e == "Earth"])
+        air_count = sum([1 for e in [element_sun_a, element_sun_b, element_mercury_a, element_mercury_b] if e == "Air"])
+        water_count = sum([1 for e in [element_moon_a, element_moon_b, element_venus_a, element_venus_b] if e == "Water"])
+        
+        element_dynamics = f"""Động lực nguyên tố:
+
+Phân tích sự cân bằng nguyên tố cho thấy mối quan hệ này có sự phân bố như sau:
+- Nguyên tố Lửa: {fire_count} (đại diện cho năng lượng, đam mê, sáng tạo)
+- Nguyên tố Đất: {earth_count} (đại diện cho sự ổn định, thực tế, kiên nhẫn)
+- Nguyên tố Khí: {air_count} (đại diện cho trí tuệ, giao tiếp, tư duy)
+- Nguyên tố Nước: {water_count} (đại diện cho cảm xúc, trực giác, cảm thông)
+
+Sự kết hợp giữa {element_sun_a} (Mặt Trời {sun_a}) và {element_sun_b} (Mặt Trời {sun_b}) tạo nên nền tảng cho sự tương tác năng lượng cốt lõi. Nếu hai nguyên tố này là {element_sun_a} và {element_sun_b}, chúng có thể tạo nên sự {self._get_element_interaction(element_sun_a, element_sun_b).lower()}.
+
+Mặt Trăng {moon_a} ({element_moon_a}) và Mặt Trăng {moon_b} ({element_moon_b}) tiết lộ cách hai người xử lý cảm xúc và nhu cầu cảm xúc sâu kín. Sự tương thích giữa hai nguyên tố này rất quan trọng cho sự gắn kết cảm xúc lâu dài.
+
+Kim Tinh {venus_a} ({element_venus_a}) và Kim Tinh {venus_b} ({element_venus_b}) cho thấy cách hai người yêu thương và được yêu, trong khi Hỏa Tinh {mars_a} ({element_mars_a}) và Hỏa Tinh {mars_b} ({element_mars_b}) tiết lộ cách họ thể hiện năng lượng, đam mê và xử lý xung đột.
+
+Sự cân bằng tổng thể giữa các nguyên tố này sẽ quyết định mức độ hài hòa và thách thức trong mối quan hệ."""
+        
+        return element_dynamics
+
+    def _generate_ai_planetary_aspects(self, aspects) -> list:
+        """Generate planetary aspect analysis"""
+        aspect_list = []
+        
+        for aspect in aspects:
+            if hasattr(aspect, 'aspect'):
+                aspect_name = aspect.aspect
+                orb = getattr(aspect, 'orb', 0)
+                description = getattr(aspect, 'description', 'Mô tả không khả dụng')
+            else:
+                aspect_name = str(aspect)
+                orb = 0
+                description = "Mô tả không khả dụng"
+            
+            aspect_list.append({
+                "aspect": aspect_name,
+                "orb": orb,
+                "description": description
+            })
+        
+        return aspect_list
+
+    def _generate_ai_emotional_connection(self, moon_a, moon_b, venus_a, venus_b, sun_a, sun_b) -> str:
+        """Generate emotional connection analysis"""
+        emotional_connection = f"""Kết nối cảm xúc:
+
+Mối liên kết cảm xúc giữa hai người được xây dựng chủ yếu thông qua sự tương tác giữa Mặt Trăng {moon_a} và Mặt Trăng {moon_b}. Mặt Trăng {moon_a} ({SIGN_TRAITS.get(moon_a, "").split("|")[1]}) tiết lộ nhu cầu cảm xúc sâu kín và cách người A tìm kiếm sự an toàn, trong khi Mặt Trăng {moon_b} ({SIGN_TRAITS.get(moon_b, "").split("|")[1]}) cho thấy nhu cầu và cách thể hiện cảm xúc của người B.
+
+Sự tương thích giữa hai Mặt Trăng này rất quan trọng vì nó quyết định liệu hai người có thể tạo nên một môi trường cảm xúc an toàn và nuôi dưỡng cho nhau hay không. Nếu Mặt Trăng {moon_a} và Mặt Trăng {moon_b} có sự tương thích tốt, hai người sẽ dễ dàng thấu hiểu và đáp ứng nhu cầu cảm xúc của nhau.
+
+Kim Tinh {venus_a} và Kim Tinh {venus_b} cũng đóng vai trò quan trọng trong việc tạo nên sự kết nối cảm xúc. Kim Tinh {venus_a} ({SIGN_TRAITS.get(venus_a, "").split("|")[1]}) cho thấy cách người A thể hiện tình yêu và những gì họ cần để cảm thấy được yêu thương, trong khi Kim Tinh {venus_b} ({SIGN_TRAITS.get(venus_b, "").split("|")[1]}) tiết lộ cách người B yêu thương và những giá trị họ tìm kiếm trong tình yêu.
+
+Sự kết hợp giữa Mặt Trời {sun_a} và Mặt Trăng {moon_b}, cũng như Mặt Trời {sun_b} và Mặt Trăng {moon_a} tạo nên một động lực cảm xúc mạnh mẽ, nơi mà bản chất cốt lõi của một người có thể nuôi dưỡng và làm hài lòng thế giới cảm xúc của người kia.
+
+Để phát triển kết nối cảm xúc sâu sắc, cả hai cần học cách {SIGN_TRAITS.get(moon_b, "").split("|")[1].lower()} để làm người kia cảm thấy an toàn, đồng thời {SIGN_TRAITS.get(moon_a, "").split("|")[1].lower()} để đáp lại nhu cầu cảm xúc của đối phương."""
+        
+        return emotional_connection
+
+    def _generate_ai_romantic_attraction(self, venus_a, venus_b, mars_a, mars_b, asc_a, asc_b) -> str:
+        """Generate romantic attraction analysis"""
+        romantic_attraction = f"""Sức hút tình yêu:
+
+Sức hút tình yêu và đam mê giữa hai người được định hình chủ yếu bởi sự tương tác giữa Kim Tinh {venus_a} và Hỏa Tinh {mars_a} ở người A, cùng Kim Tinh {venus_b} và Hỏa Tinh {mars_b} ở người B.
+
+Kim Tinh {venus_a} ({SIGN_TRAITS.get(venus_a, "").split("|")[1]}) tiết lộ cách người A thể hiện tình yêu, những gì họ tìm kiếm trong tình yêu, và cách họ được yêu thương. Trong khi đó, Hỏa Tinh {mars_a} ({SIGN_TRAITS.get(mars_a, "").split("|")[1]}) cho thấy cách người A thể hiện đam mê, năng lượng tình dục, và cách họ theo đuổi những gì họ muốn.
+
+Tương tự, Kim Tinh {venus_b} ({SIGN_TRAITS.get(venus_b, "").split("|")[1]}) và Hỏa Tinh {mars_b} ({SIGN_TRAITS.get(mars_b, "").split("|")[1]}) tiết lộ cách người B yêu thương và thể hiện đam mê.
+
+Sự hấp dẫn giữa Kim Tinh {venus_a} và Hỏa Tinh {mars_b} tạo nên một sức hút tình dục mạnh mẽ, nơi mà {SIGN_TRAITS.get(venus_a, "").split("|")[1].lower()} của người A bị thu hút bởi {SIGN_TRAITS.get(mars_b, "").split("|")[1].lower()} của người B. Ngược lại, Kim Tinh {venus_b} lại tìm thấy {SIGN_TRAITS.get(mars_a, "").split("|")[1].lower()} ở Hỏa Tinh {mars_a}.
+
+Cung Mọc {asc_a} và {asc_b} cũng ảnh hưởng đến sức hút ban đầu và cách hai người thể hiện bản thân trong tình yêu. Cung Mọc {asc_a} tạo ấn tượng ban đầu là {SIGN_TRAITS.get(asc_a, "").split("|")[1]}, trong khi Cung Mọc {asc_b} lại mang đến cảm giác {SIGN_TRAITS.get(asc_b, "").split("|")[1]}.
+
+Sự kết hợp này tạo nên một sự hấp dẫn toàn diện, từ vẻ bề ngoài đến cách thể hiện tình cảm, từ đam mê tình dục đến cách nuôi dưỡng tình yêu lâu dài."""
+        
+        return romantic_attraction
+
+    def _generate_ai_communication_style(self, mercury_a, mercury_b, sun_a, sun_b, moon_a, moon_b) -> str:
+        """Generate communication style analysis"""
+        communication_style = f"""Phong cách giao tiếp:
+
+Cách hai người giao tiếp và trao đổi ý tưởng được định hình chủ yếu bởi Thủy Tinh {mercury_a} và Thủy Tinh {mercury_b}. Thủy Tinh {mercury_a} ({SIGN_TRAITS.get(mercury_a, "").split("|")[1]}) tiết lộ cách người A tư duy, xử lý thông tin, và truyền đạt ý tưởng, trong khi Thủy Tinh {mercury_b} ({SIGN_TRAITS.get(mercury_b, "").split("|")[1]}) cho thấy cách người B suy nghĩ và giao tiếp.
+
+Sự tương thích giữa hai Thủy Tinh này rất quan trọng vì nó quyết định liệu hai người có thể hiểu nhau trong giao tiếp hàng ngày, thảo luận các vấn đề quan trọng, và giải quyết bất đồng một cách hiệu quả hay không.
+
+Mặt Trời {sun_a} và Mặt Trời {sun_b} cũng ảnh hưởng đến cách hai người thể hiện bản thân và quan điểm sống. Sự kết hợp này có thể tạo nên một động lực mạnh mẽ trong việc chia sẻ tầm nhìn và mục tiêu sống.
+
+Mặt Trăng {moon_a} và Mặt Trăng {moon_b} tiết lộ cách hai người xử lý cảm xúc trong giao tiếp. Nếu hai Mặt Trăng này có sự tương thích, hai người sẽ dễ dàng chia sẻ cảm xúc và thấu hiểu nhau trong những lúc khó khăn.
+
+Để cải thiện giao tiếp, cả hai cần học cách {SIGN_TRAITS.get(mercury_b, "").split("|")[1].lower()} để hiểu cách tư duy của người kia, đồng thời {SIGN_TRAITS.get(mercury_a, "").split("|")[1].lower()} để đáp lại phong cách giao tiếp của đối phương.
+
+Sự kết hợp này có thể tạo nên một mối quan hệ giao tiếp hiệu quả nếu cả hai cùng nỗ lực thấu hiểu và tôn trọng phong cách tư duy khác biệt của nhau."""
+        
+        return communication_style
+
+    def _generate_ai_conflict_dynamics(self, sun_a, sun_b, moon_a, moon_b, mars_a, mars_b, fallback_mode) -> str:
+        """Generate conflict dynamics analysis"""
+        conflict_dynamics = f"""Động lực xung đột:
+
+Mặc dù có nhiều điểm tương thích, mối quan hệ này cũng tiềm ẩn những điểm xung đột cần được lưu ý. Mặt Trời {sun_a} và Mặt Trời {sun_b} có thể tạo nên sự cạnh tranh nếu cả hai cùng tìm kiếm {SIGN_TRAITS.get(sun_a, "").split("|")[1].lower()}.
+
+Mặt Trăng {moon_a} và Mặt Trăng {moon_b} có thể tạo nên sự hiểu lầm trong nhu cầu cảm xúc. Người A với Mặt Trăng {moon_a} cần {SIGN_TRAITS.get(moon_a, "").split("|")[1].lower()} trong mối quan hệ, trong khi người B với Mặt Trăng {moon_b} lại tìm kiếm {SIGN_TRAITS.get(moon_b, "").split("|")[1].lower()}. Nếu không được thấu hiểu, điều này có thể dẫn đến cảm giác bị bỏ rơi hoặc không được đáp ứng.
+
+Hỏa Tinh {mars_a} và Hỏa Tinh {mars_b} có thể tạo nên xung đột trong cách thể hiện năng lượng và xử lý mâu thuẫn. Người A với Hỏa Tinh {mars_a} có thể {SIGN_TRAITS.get(mars_a, "").split("|")[1].lower()} khi tức giận, trong khi người B với Hỏa Tinh {mars_b} lại {SIGN_TRAITS.get(mars_b, "").split("|")[1].lower()}.
+
+{f'⚠️ Lưu ý: Ở chế độ fallback (thiếu giờ sinh), một số aspect quan trọng về Cung Mọc và các house có thể không được tính toán chính xác, điều này có thể ảnh hưởng đến việc dự đoán các điểm xung đột cụ thể.' if fallback_mode else 'Với đầy đủ thông tin giờ sinh, các điểm xung đột có thể được dự đoán chính xác hơn thông qua việc phân tích các aspect và house.'}
+
+Tình huống cụ thể có thể xảy ra: khi người A muốn {SIGN_TRAITS.get(sun_a, "").split("|")[1].lower()}, người B lại cảm thấy {SIGN_TRAITS.get(sun_b, "").split("|")[1].lower()}. Hoặc khi người A cần {SIGN_TRAITS.get(moon_a, "").split("|")[1].lower()}, người B lại không hiểu tại sao người A lại {SIGN_TRAITS.get(moon_b, "").split("|")[1].lower()}.
+
+Để giải quyết xung đột hiệu quả, cả hai cần học cách {SIGN_TRAITS.get(mars_b, "").split("|")[1].lower()} để làm dịu căng thẳng, đồng thời {SIGN_TRAITS.get(moon_a, "").split("|")[1].lower()} để thấu hiểu nhu cầu cảm xúc của đối phương."""
+        
+        return conflict_dynamics
+
+    def _generate_ai_long_term_potential(self, sun_a, sun_b, moon_a, moon_b, venus_a, venus_b, asc_a, asc_b, aspects) -> str:
+        """Generate long-term potential analysis"""
+        long_term_potential = f"""Tiềm năng lâu dài:
+
+Tiềm năng phát triển lâu dài của mối quan hệ này được quyết định bởi sự tương thích giữa các yếu tố cốt lõi: Mặt Trời {sun_a} và Mặt Trời {sun_b}, Mặt Trăng {moon_a} và Mặt Trăng {moon_b}, Kim Tinh {venus_a} và Kim Tinh {venus_b}, cùng các aspect quan trọng giữa các hành tinh.
+
+Sự tương thích giữa Mặt Trời {sun_a} và Mặt Trời {sun_b} cho thấy liệu hai người có cùng chung tầm nhìn sống, mục tiêu và giá trị cốt lõi hay không. Nếu hai Mặt Trời này có sự tương thích tốt, hai người sẽ dễ dàng hỗ trợ nhau trong việc theo đuổi ước mơ và mục tiêu cá nhân.
+
+Mặt Trăng {moon_a} và Mặt Trăng {moon_b} tiết lộ liệu hai người có thể tạo nên một môi trường cảm xúc an toàn và nuôi dưỡng cho nhau hay không. Sự tương thích giữa hai Mặt Trăng này rất quan trọng cho sự gắn kết cảm xúc lâu dài.
+
+Kim Tinh {venus_a} và Kim Tinh {venus_b} cho thấy liệu hai người có cùng phong cách yêu thương và những giá trị trong tình yêu hay không. Sự tương thích này quyết định khả năng duy trì tình yêu và sự gắn bó lâu dài.
+
+Cung Mọc {asc_a} và {asc_b} ảnh hưởng đến cách hai người thể hiện bản thân trong mối quan hệ và cách họ đối mặt với các thử thách. Sự tương thích giữa hai Cung Mọc có thể tạo nên sự hòa hợp trong phong cách sống và cách ứng xử hàng ngày.
+
+Các aspect quan trọng giữa các hành tinh cũng đóng vai trò quyết định trong việc dự đoán tiềm năng lâu dài. Các aspect harmonious (Trine, Sextile) tạo nên sự hỗ trợ và nuôi dưỡng, trong khi các aspect challenging (Square, Opposition) có thể tạo nên những bài học và thử thách cần vượt qua.
+
+Nếu cả hai cùng nỗ lực thấu hiểu và trân trọng sự khác biệt của nhau, mối quan hệ này có tiềm năng phát triển thành một partnership bền vững và đầy ý nghĩa."""
+        
+        return long_term_potential
+
+    def _generate_ai_growth_advice(self, sun_a, sun_b, moon_a, moon_b, mercury_a, mercury_b, venus_a, venus_b, mars_a, mars_b, asc_a, asc_b, aspects, fallback_mode) -> str:
+        """Generate growth advice with fallback mode awareness"""
+        growth_advice = f"""Lời khuyên phát triển:
+
+Để phát triển mối quan hệ này một cách bền vững, cả hai cần lưu ý những điểm sau:
+
+**Cách điều chỉnh:**
+- Người A cần học cách {SIGN_TRAITS.get(sun_b, "").split("|")[1].lower()} để làm người B cảm thấy được trân trọng
+- Người B cần học cách {SIGN_TRAITS.get(sun_a, "").split("|")[1].lower()} để đáp lại nhu cầu của người A
+- Cả hai cần học cách nói ngôn ngữ tình yêu của đối phương: người A cần {SIGN_TRAITS.get(venus_b, "").split("|")[1].lower()}, trong khi người B cần {SIGN_TRAITS.get(venus_a, "").split("|")[1].lower()}
+
+**Cách phát triển mối quan hệ:**
+- Dành thời gian để thấu hiểu nhu cầu cảm xúc sâu kín của nhau
+- Học cách giao tiếp hiệu quả, đặc biệt là trong những lúc căng thẳng
+- Cùng nhau đặt ra những mục tiêu chung và hỗ trợ nhau đạt được
+- Biết compromise khi cần thiết, nhưng cũng biết bảo vệ ranh giới cá nhân
+- Cùng nhau trải nghiệm những điều mới mẻ để nuôi dưỡng sự hấp dẫn
+
+**Lưu ý đặc biệt:**
+{f'⚠️ Do đang ở chế độ fallback (thiếu giờ sinh), một số khía cạnh về Cung Mọc và các house không thể được tính toán chính xác. Điều này có nghĩa là một số lời khuyên về phong cách thể hiện bản thân và cách đối mặt với thử thách có thể cần được điều chỉnh khi có đầy đủ thông tin giờ sinh.' if fallback_mode else 'Với đầy đủ thông tin giờ sinh, các lời khuyên có thể được cá nhân hóa chính xác hơn dựa trên Cung Mọc và các house.'}
+
+**Các bài học phát triển:**
+- Học cách {SIGN_TRAITS.get(moon_b, "").split("|")[1].lower()} để nuôi dưỡng cảm xúc của người kia
+- Phát triển khả năng {SIGN_TRAITS.get(mercury_a, "").split("|")[1].lower()} để cải thiện giao tiếp
+- Rèn luyện sự {SIGN_TRAITS.get(mars_b, "").split("|")[1].lower()} để xử lý xung đột hiệu quả
+- Nuôi dưỡng sự {SIGN_TRAITS.get(venus_a, "").split("|")[1].lower()} để duy trì tình yêu lâu dài
+
+Sự phát triển của mối quan hệ này phụ thuộc vào khả năng học hỏi và thích nghi của cả hai người. Nếu cùng nhau nỗ lực, mối quan hệ này có thể trở thành một hành trình phát triển cá nhân và tâm hồn đầy ý nghĩa."""
+        
+        return growth_advice
+
+    def _generate_ai_comprehensive_analysis(
+        self, sun_a, sun_b, moon_a, moon_b, mercury_a, mercury_b, venus_a, venus_b, mars_a, mars_b, asc_a, asc_b,
+        aspects, scores, overview, element_dynamics, planetary_aspects, emotional_connection,
+        romantic_attraction, communication_style, conflict_dynamics, long_term_potential, growth_advice,
+        fallback_mode
+    ) -> str:
+        """Generate comprehensive analysis essay (>=1000 words)"""
+        
+        comprehensive_analysis = f"""PHÂN TÍCH TƯƠNG THÍCH CHI TIẾT
+
+{overview}
+
+{element_dynamics}
+
+{emotional_connection}
+
+{romantic_attraction}
+
+{communication_style}
+
+{conflict_dynamics}
+
+{long_term_potential}
+
+{growth_advice}
+
+TỔNG KẾT ĐÁNH GIÁ
+
+Dựa trên toàn bộ phân tích chi tiết ở trên, mối quan hệ giữa {sun_a} và {sun_b} là một mối quan hệ có tiềm năng phát triển sâu sắc nếu cả hai cùng nỗ lực thấu hiểu và trân trọng sự khác biệt của nhau.
+
+Với điểm số:
+- Emotional Compatibility: {scores['emotionalCompatibility']}/100 - Được đánh giá dựa trên sự tương thích giữa Mặt Trăng và Kim Tinh
+- Romantic Compatibility: {scores['romanticCompatibility']}/100 - Được đánh giá dựa trên sự hấp dẫn giữa Kim Tinh và Hỏa Tinh
+- Communication Compatibility: {scores['communicationCompatibility']}/100 - Được đánh giá dựa trên sự tương thích giữa Thủy Tinh
+- Long-term Stability: {scores['longTermStability']}/100 - Được đánh giá dựa trên sự tương thích tổng thể và các aspect quan trọng
+
+Mối quan hệ này có những điểm mạnh nổi bật trong việc tạo nên sự gắn kết cảm xúc và sức hút tình yêu, đồng thời cũng có những thách thức cần được lưu ý và vượt qua.
+
+Để phát triển mối quan hệ này một cách bền vững, cả hai cần:
+1. Học cách thấu hiểu và chấp nhận sự khác biệt
+2. Giao tiếp cởi mở và trung thực
+3. Cùng nhau đặt ra những mục tiêu chung
+4. Biết compromise khi cần thiết
+5. Dành thời gian để nuôi dưỡng cảm xúc và sự gắn kết
+
+Nếu cùng nhau nỗ lực, mối quan hệ này có tiềm năng trở thành một partnership bền vững, nơi mà cả hai người cùng phát triển và trưởng thành về mặt cảm xúc, tâm hồn, và tinh thần.
+
+{f'Lưu ý: Phân tích này được thực hiện ở chế độ fallback (thiếu giờ sinh), do đó một số khía cạnh về Cung Mọc và các house có thể không chính xác hoàn toàn. Để có phân tích chính xác nhất, nên cung cấp đầy đủ thông tin giờ sinh.' if fallback_mode else 'Phân tích này được thực hiện với đầy đủ thông tin giờ sinh, đảm bảo độ chính xác cao trong tất cả các khía cạnh tính toán.'}"""
+        
+        return comprehensive_analysis
+
     def _build_comprehensive_analysis(
         self, sun_a, moon_a, mercury_a, venus_a, mars_a, asc_a,
         sun_b, moon_b, mercury_b, venus_b, mars_b, asc_b, aspects
