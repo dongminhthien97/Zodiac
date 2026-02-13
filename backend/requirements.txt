@@ -6,7 +6,6 @@ python-multipart>=0.0.6  # Form data parsing
 # Astrology and ephemeris libraries (keep latest stable)
 kerykeion>=5.7.2,<6.0.0  # Astrological calculations
 pyswisseph>=2.10.3.2  # Swiss Ephemeris for precise calculations
-geopy>=2.4.1  # Geocoding for location-based astrology
 
 # Database and API clients
 supabase>=2.27.0,<3.0.0  # Supabase client

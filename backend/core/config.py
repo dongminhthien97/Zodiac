@@ -31,6 +31,7 @@ class Settings:
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENCAGE_API_KEY: str = os.getenv("OPENCAGE_API_KEY", "")
 
 # Global settings instance
 settings = Settings()

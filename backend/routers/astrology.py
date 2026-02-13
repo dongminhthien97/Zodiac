@@ -9,7 +9,7 @@ from models.schemas import (
     AICompatibilityReportRequest, AICompatibilityReportResponse
 )
 from services.astrology_service import AstrologyService
-from services.geocoding_service import GeocodingService
+from services.geocoding_service import GeocodingService, OpenCageService
 from services.ai_service import get_global_ai_service
 from supabase_client import get_supabase_client
 
@@ -27,15 +27,26 @@ async def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
     astrology = AstrologyService()
-    geocoder = GeocodingService()
+    geocoder = OpenCageService(settings.OPENCAGE_API_KEY)
 
     # Get coordinates for both people
-    lat_a, lon_a, addr_a = geocoder.geocode(payload.person_a.birth_place)
-    lat_b, lon_b, addr_b = geocoder.geocode(payload.person_b.birth_place)
-
-    # Log coordinate resolution results
-    logger.info(f"Geocoding results - Person A: lat={lat_a}, lon={lon_a}, addr={addr_a}")
-    logger.info(f"Geocoding results - Person B: lat={lat_b}, lon={lon_b}, addr={addr_b}")
+    try:
+        result_a = geocoder.geocode(payload.person_a.birth_place)
+        result_b = geocoder.geocode(payload.person_b.birth_place)
+        
+        lat_a, lon_a, addr_a = result_a['lat'], result_a['lon'], result_a['formatted']
+        lat_b, lon_b, addr_b = result_b['lat'], result_b['lon'], result_b['formatted']
+        
+        # Log coordinate resolution results
+        logger.info(f"Geocoding successful - Person A: lat={lat_a}, lon={lon_a}, confidence={result_a['confidence']}")
+        logger.info(f"Geocoding successful - Person B: lat={lat_b}, lon={lon_b}, confidence={result_b['confidence']}")
+        
+    except ValueError as e:
+        logger.error(f"Geocoding failed: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to geocode location: {str(e)}"
+        )
 
     # Build charts with fault tolerance
     try:
@@ -226,13 +237,26 @@ def compatibility_new(raw_payload: dict = Body(...)) -> CompatibilityResponseNew
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
     astrology = AstrologyService()
-    geocoder = GeocodingService()
+    geocoder = OpenCageService(settings.OPENCAGE_API_KEY)
 
-    # Get coordinates for both people (best-effort; compatibility can still be computed without houses)
-    lat_a, lon_a, addr_a = geocoder.geocode(payload.person_a.birth_place)
-    lat_b, lon_b, addr_b = geocoder.geocode(payload.person_b.birth_place)
-    logger.info(f"Geocoding results (compatibility/new) - Person A: lat={lat_a}, lon={lon_a}, addr={addr_a}")
-    logger.info(f"Geocoding results (compatibility/new) - Person B: lat={lat_b}, lon={lon_b}, addr={addr_b}")
+    # Get coordinates for both people
+    try:
+        result_a = geocoder.geocode(payload.person_a.birth_place)
+        result_b = geocoder.geocode(payload.person_b.birth_place)
+        
+        lat_a, lon_a, addr_a = result_a['lat'], result_a['lon'], result_a['formatted']
+        lat_b, lon_b, addr_b = result_b['lat'], result_b['lon'], result_b['formatted']
+        
+        # Log coordinate resolution results
+        logger.info(f"Geocoding successful - Person A: lat={lat_a}, lon={lon_a}, confidence={result_a['confidence']}")
+        logger.info(f"Geocoding successful - Person B: lat={lat_b}, lon={lon_b}, confidence={result_b['confidence']}")
+        
+    except ValueError as e:
+        logger.error(f"Geocoding failed: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to geocode location: {str(e)}"
+        )
     
     # Calculate compatibility with new system
     try:
@@ -357,11 +381,22 @@ def natal_standard(raw_payload: dict = Body(...)) -> StandardReportResponse:
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
     astrology = AstrologyService()
-    geocoder = GeocodingService()
+    geocoder = OpenCageService(settings.OPENCAGE_API_KEY)
 
-    lat, lon, _addr = geocoder.geocode(payload.person.birth_place)
-    if lat is None or lon is None:
-        raise HTTPException(status_code=400, detail="Không thể tìm được vị trí sinh")
+    # Get coordinates with strict validation
+    try:
+        result = geocoder.geocode(payload.person.birth_place)
+        lat, lon = result['lat'], result['lon']
+        
+        # Log coordinate resolution results
+        logger.info(f"Geocoding successful for {payload.person.name}: lat={lat}, lon={lon}, confidence={result['confidence']}")
+        
+    except ValueError as e:
+        logger.error(f"Geocoding failed for {payload.person.name}: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Không thể tìm được vị trí sinh: {str(e)}"
+        )
 
     chart = astrology.build_natal_chart(payload.person, lat, lon)
     return astrology.build_standard_report(chart, payload.person)
