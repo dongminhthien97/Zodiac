@@ -38,10 +38,25 @@ GROQ_CONFIG = {
 }
 
 # ---------------------------------------------------------------------------
-# SYSTEM PROMPTS (Ultra-strict, anti-duplicate, anti-markdown)
+# SYSTEM PROMPTS (Ultra-strict, anti-duplicate, anti-markdown, Vietnamese)
 # ---------------------------------------------------------------------------
 
-SYSTEM_IDENTITY = """You are a deterministic JSON generator.
+# Base language rules to prepend to all system prompts
+LANGUAGE_RULES = """You are a professional astrologer.
+
+IMPORTANT - LANGUAGE RULES:
+- All textual content MUST be written in Vietnamese.
+- Use natural Vietnamese.
+- No English words.
+- No bilingual output.
+- Do not translate zodiac names to English.
+- Use Vietnamese astrological terminology.
+- Maintain premium, mystical tone.
+- If any part of the response is not Vietnamese, regenerate internally before output.
+
+"""
+
+SYSTEM_IDENTITY = LANGUAGE_RULES + """You are a deterministic JSON generator.
 
 CRITICAL RULES:
 - Output ONLY valid JSON.
@@ -53,7 +68,7 @@ CRITICAL RULES:
 - Stop immediately if structure breaks.
 - If duplicate key appears, return {"error":"DUPLICATE_KEY"}."""
 
-SYSTEM_PLANETS = """Strict JSON generator.
+SYSTEM_PLANETS = LANGUAGE_RULES + """Strict JSON generator.
 
 Rules:
 - Output ONLY valid JSON.
@@ -63,7 +78,7 @@ Rules:
 - Max 10 planets.
 - Stop if structure breaks."""
 
-SYSTEM_ASPECTS = """Strict JSON generator.
+SYSTEM_ASPECTS = LANGUAGE_RULES + """Strict JSON generator.
 
 Rules:
 - Output ONLY JSON.
@@ -72,7 +87,7 @@ Rules:
 - intensity integer 1–10.
 - Stop if key repeats."""
 
-SYSTEM_NARRATIVE = """Strict JSON generator.
+SYSTEM_NARRATIVE = LANGUAGE_RULES + """Strict JSON generator.
 
 Rules:
 - Output ONLY JSON.
