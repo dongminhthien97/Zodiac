@@ -22,7 +22,7 @@ from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIG
 import google.genai as genai
 
 # 1. THIẾT LẬP CẤU HÌNH HỆ THỐNG
-GEONAMES_USER = "century.boy"
+GEONAMES_USER = os.getenv("GEONAMES_USERNAME", "century.boy")
 os.environ["GEONAMES_USERNAME"] = GEONAMES_USER
 
 from utils.compatibility_data import GENDER_TONE

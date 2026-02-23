@@ -1,11 +1,14 @@
 from __future__ import annotations
 import logging
 import httpx
-import asyncio
-from typing import Optional
 import re
 
 logger = logging.getLogger(__name__)
+
+try:
+    from groq import AsyncGroq  # type: ignore
+except Exception:
+    AsyncGroq = None
 
 class AIService:
     def __init__(self, api_key: str) -> None:
@@ -16,6 +19,13 @@ class AIService:
         self.endpoint = "https://api.groq.com/openai/v1/chat/completions"
         self.model = "llama-3.1-70b-versatile"
         self.timeout = 60.0
+
+        self._groq_client = None
+        if AsyncGroq is not None:
+            try:
+                self._groq_client = AsyncGroq(api_key=self.api_key)
+            except Exception as e:
+                logger.warning("Groq SDK client init failed; falling back to HTTP: %s", e)
         
         logger.info(f"AI Service initialized with model: {self.model}")
 
@@ -73,6 +83,21 @@ class AIService:
 
     async def _call_groq_api(self, prompt: str) -> str:
         """Make API call to Groq with proper error handling and logging."""
+        if self._groq_client is not None:
+            try:
+                completion = await self._groq_client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.85,
+                    max_tokens=4096,
+                )
+                content = completion.choices[0].message.content
+                if not content:
+                    raise ValueError("Empty content returned from Groq SDK")
+                return content
+            except Exception as e:
+                logger.warning("Groq SDK request failed; falling back to HTTP: %s", e)
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"

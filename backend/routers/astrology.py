@@ -12,6 +12,7 @@ from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService, OpenCageService
 from services.ai_service import get_global_ai_service
 from supabase_client import get_supabase_client
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 

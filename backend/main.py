@@ -1,5 +1,4 @@
 import logging
-import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +12,7 @@ from core.config import settings, log_startup_info
 
 # Configure logging
 logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
+    level=settings.LOG_LEVEL,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
@@ -24,12 +23,8 @@ app = FastAPI(
 )
 
 # CORS configuration
-raw_origins = os.getenv(
-    "CORS_ALLOW_ORIGINS",
-    "https://zodiacs-jet.vercel.app,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
-)
-allow_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
-allow_credentials = os.getenv("CORS_ALLOW_CREDENTIALS", "false").lower() == "true"
+allow_origins = settings.cors_allow_origins_list
+allow_credentials = settings.CORS_ALLOW_CREDENTIALS
 
 # CORS note:
 # - Browsers reject responses when `allow_credentials=True` with wildcard origins.
@@ -56,6 +51,6 @@ def healthcheck() -> dict:
     return {"status": "ok", "service": "zodiac-compatibility-checker", "version": "0.1.0"}
 
 @app.get("/health")
-def health() -> dict:
-    """Alternative health check endpoint"""
-    return {"status": "healthy", "service": "zodiac-compatibility-checker"}
+async def health() -> dict:
+    """Health check endpoint for Render"""
+    return {"status": "ok"}

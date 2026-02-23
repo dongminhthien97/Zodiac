@@ -3,7 +3,7 @@ from supabase import create_client, Client
 
 def get_supabase_client() -> Client | None:
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
     if not url or not key:
         return None
     return create_client(url, key)
