@@ -15,6 +15,7 @@ from models.schemas import (
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService, OpenCageService
 from services.ai_service import AIService, GroqAPIError, get_global_ai_service
+from services.natal_prompt_builder import build_natal_prompts, build_natal_data_payload
 from supabase_client import get_supabase_client
 from core.config import settings
 
@@ -570,85 +571,31 @@ async def natal(raw_payload: dict = Body(...)) -> NatalAIResponse:
 
     aspects_prompt = _detect_major_aspects(planets_prompt, max_items=18, orb=6.0)
 
-    natal_data_for_prompt = {
-        "person": {
-            "name": payload.person.name,
-            "birth_date": payload.person.birth_date,
-            "birth_time": payload.person.birth_time,
-            "time_unknown": payload.person.time_unknown,
-            "birth_place": payload.person.birth_place,
-            "lat": lat,
-            "lon": lon,
-            "resolved_address": addr,
-            "assumed_timezone": "+07:00",
-        },
-        "sun": astrology_response.meta.zodiac.sun,
-        "moon": astrology_response.meta.zodiac.moon,
-        "rising": astrology_response.meta.zodiac.rising,
-        "dominant_element": astrology_response.meta.zodiac.element,
-        "planets": planets_prompt,
-        "houses": houses_data,
-        "aspects": aspects_prompt,
+    person_info = {
+        "name": payload.person.name,
+        "birth_date": payload.person.birth_date,
+        "birth_time": payload.person.birth_time,
+        "time_unknown": payload.person.time_unknown,
+        "birth_place": payload.person.birth_place,
+        "lat": lat,
+        "lon": lon,
+        "resolved_address": addr,
+        "assumed_timezone": "+07:00",
     }
 
-    required_schema_template = {
-        "core_identity": {
-            "sun_sign": {"sign": "", "house": 0, "interpretation": ""},
-            "moon_sign": {"sign": "", "house": 0, "interpretation": ""},
-            "rising_sign": {"sign": "", "interpretation": ""},
-            "summary": "",
-        },
-        "planets": [
-            {"planet": "", "sign": "", "house": 0, "retrograde": False, "interpretation": ""}
-        ],
-        "aspects": [{"planet_1": "", "planet_2": "", "aspect_type": "", "interpretation": ""}],
-        "love_profile": {"attachment_style": "", "strengths": "", "challenges": "", "advice": ""},
-        "career_analysis": {
-            "natural_strengths": "",
-            "best_fields": "",
-            "work_style": "",
-            "growth_advice": "",
-        },
-        "psychological_pattern": {"core_wound": "", "shadow_traits": "", "healing_direction": ""},
-        "practical_guidance": {"relationships": "", "career": "", "self_development": ""},
-    }
+    natal_data_for_prompt = build_natal_data_payload(
+        person_info=person_info,
+        sun=astrology_response.meta.zodiac.sun,
+        moon=astrology_response.meta.zodiac.moon,
+        rising=astrology_response.meta.zodiac.rising,
+        dominant_element=astrology_response.meta.zodiac.element,
+        planets_prompt=planets_prompt,
+        houses_data=houses_data,
+        aspects_prompt=aspects_prompt,
+    )
 
-    system_prompt = """You are a professional astrologer generating a structured natal chart interpretation.
-
-You MUST return valid JSON only.
-Do NOT use markdown.
-Do NOT add explanations outside JSON.
-Do NOT change field names.
-All interpretation text must be in Vietnamese.
-Each interpretation section must be detailed and personalized.
-NO extra keys allowed.
-If you output invalid JSON, the system will fail."""
-
-    natal_data_json = json.dumps(natal_data_for_prompt, ensure_ascii=False, indent=2, sort_keys=True)
-    schema_json = json.dumps(required_schema_template, ensure_ascii=False, indent=2, sort_keys=True)
-
-    # Prompt sent to Groq (user message). Must produce JSON only, matching schema exactly.
-    user_prompt = f"""Here is the natal chart data:
-
-{natal_data_json}
-
-Generate the interpretation following EXACT schema.
-
-STRICT OUTPUT RULES:
-- Return ONLY a JSON object, nothing else.
-- No markdown, no code fences, no commentary.
-- Do not add/remove/rename keys.
-- No extra keys anywhere.
-- Use integers for all `house` fields (use 0 if unknown).
-- Use boolean for `retrograde`.
-- Do not output `null` for any string field; use an empty string \"\" if unknown.
-- The `planets` array must include one item for each input planet in `planets` (same order).
-- The `aspects` array must include items for the provided `aspects` input (you may include fewer if input is empty).
-- All `sign`, `house`, and `retrograde` values must match the input data.
-
-REQUIRED SCHEMA (must match exactly):
-{schema_json}
-""".strip()
+    # Build professional astrologer system + user prompts
+    system_prompt, user_prompt = build_natal_prompts(natal_data_for_prompt)
 
     try:
         ai_service = AIService(

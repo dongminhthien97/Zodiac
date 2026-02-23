@@ -238,7 +238,6 @@ class NatalAILoveProfile(StrictModel):
 
 
 class NatalAICareerAnalysis(StrictModel):
-    natural_strengths: str
     best_fields: str
     work_style: str
     growth_advice: str
@@ -246,7 +245,6 @@ class NatalAICareerAnalysis(StrictModel):
 
 class NatalAIPsychologicalPattern(StrictModel):
     core_wound: str
-    shadow_traits: str
     healing_direction: str
 
 
