@@ -65,3 +65,14 @@ def healthcheck() -> dict:
 async def health() -> dict:
     """Health check endpoint for Render"""
     return {"status": "ok"}
+
+
+@app.get("/health/groq")
+async def groq_health() -> dict:
+    """Verify Groq configuration without exposing secrets."""
+    s = get_settings()
+    return {
+        "groq_api_key_loaded": bool(s.GROQ_API_KEY),
+        "groq_base_url": s.GROQ_BASE_URL,
+        "groq_model": s.GROQ_MODEL,
+    }

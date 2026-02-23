@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     CORS_ALLOW_CREDENTIALS: bool = False
 
     GROQ_API_KEY: str = ""
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
+    GROQ_TIMEOUT_SECONDS: float = 60.0
     OPENCAGE_API_KEY: str = ""
     GOOGLE_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
@@ -92,6 +95,8 @@ def log_startup_info() -> None:
     logger.info("  CORS_ALLOW_ORIGINS set: %s", "Yes" if s.CORS_ALLOW_ORIGINS else "No")
     logger.info("  CORS_ALLOW_CREDENTIALS: %s", s.CORS_ALLOW_CREDENTIALS)
     logger.info("  GROQ_API_KEY configured: %s", "Yes" if s.GROQ_API_KEY else "No")
+    logger.info("  GROQ_BASE_URL: %s", s.GROQ_BASE_URL)
+    logger.info("  GROQ_MODEL: %s", s.GROQ_MODEL)
     logger.info("  OPENCAGE_API_KEY configured: %s", "Yes" if s.OPENCAGE_API_KEY else "No")
     logger.info("  SUPABASE_URL configured: %s", "Yes" if s.SUPABASE_URL else "No")
     logger.info("  SUPABASE_KEY configured: %s", "Yes" if s.supabase_key_effective else "No")

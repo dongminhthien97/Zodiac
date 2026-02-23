@@ -6,32 +6,108 @@ from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
-try:
-    from groq import AsyncGroq  # type: ignore
-except Exception:
-    AsyncGroq = None
-
 if TYPE_CHECKING:
     from core.config import Settings
 
+
+class GroqAPIError(RuntimeError):
+    def __init__(self, message: str, *, status_code: int | None = None, response_text: str | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.response_text = response_text
+
 class AIService:
-    def __init__(self, api_key: str) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        base_url: str,
+        model: str,
+        timeout_seconds: float = 60.0,
+    ) -> None:
         self.api_key = api_key
         if not self.api_key:
             raise ValueError("GROQ_API_KEY environment variable is required")
-        
-        self.endpoint = "https://api.groq.com/openai/v1/chat/completions"
-        self.model = "llama-3.1-70b-versatile"
-        self.timeout = 60.0
 
+        self.base_url = (base_url or "https://api.groq.com/openai/v1").rstrip("/")
+        self.endpoint = f"{self.base_url}/chat/completions"
+        self.model = model
+        self.timeout = float(timeout_seconds)
         self._groq_client = None
-        if AsyncGroq is not None:
-            try:
-                self._groq_client = AsyncGroq(api_key=self.api_key)
-            except Exception as e:
-                logger.warning("Groq SDK client init failed; falling back to HTTP: %s", e)
-        
-        logger.info(f"AI Service initialized with model: {self.model}")
+
+        logger.info("AI Service initialized with model: %s", self.model)
+
+    async def create_chat_completion(
+        self,
+        *,
+        messages: list[dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
+    ) -> str:
+        """Call Groq OpenAI-compatible Chat Completions API.
+
+        Request body example:
+        {
+          "model": "<model>",
+          "messages": [
+            {"role": "system", "content": "..."},
+            {"role": "user", "content": "..."}
+          ],
+          "temperature": 0.7
+        }
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload: dict[str, object] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": float(temperature),
+        }
+        if max_tokens is not None:
+            payload["max_tokens"] = int(max_tokens)
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(self.endpoint, headers=headers, json=payload)
+        except httpx.RequestError as e:
+            raise GroqAPIError(f"Groq request failed: {e}") from e
+
+        if response.status_code != 200:
+            raise GroqAPIError(
+                f"Groq API returned non-200 status: {response.status_code}",
+                status_code=response.status_code,
+                response_text=(response.text[:2000] if response.text else None),
+            )
+
+        try:
+            data = response.json()
+        except Exception as e:
+            raise GroqAPIError(
+                "Failed to parse Groq JSON response",
+                status_code=response.status_code,
+                response_text=(response.text[:2000] if response.text else None),
+            ) from e
+
+        try:
+            content = data["choices"][0]["message"]["content"]
+        except Exception as e:
+            raise GroqAPIError(
+                "Unexpected Groq response shape (missing choices/message/content)",
+                status_code=response.status_code,
+                response_text=(response.text[:2000] if response.text else None),
+            ) from e
+
+        if not content or not str(content).strip():
+            raise GroqAPIError(
+                "Groq returned empty content",
+                status_code=response.status_code,
+                response_text=(response.text[:2000] if response.text else None),
+            )
+
+        return str(content)
 
     async def generate_long_report(self, prompt: str, min_words: int = 1000) -> str:
         """
@@ -197,7 +273,12 @@ def get_ai_service(app_settings: "Settings") -> "AIService | None":
         return None
     
     try:
-        return AIService(app_settings.GROQ_API_KEY)
+        return AIService(
+            app_settings.GROQ_API_KEY,
+            base_url=app_settings.GROQ_BASE_URL,
+            model=app_settings.GROQ_MODEL,
+            timeout_seconds=app_settings.GROQ_TIMEOUT_SECONDS,
+        )
     except Exception as e:
         logger.error("Failed to initialize AI service: %s", e)
         return None

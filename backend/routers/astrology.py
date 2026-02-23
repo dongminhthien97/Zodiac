@@ -1,22 +1,112 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Body, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 import logging
+import json
+
+import swisseph as swe
 
 from models.schemas import (
-    CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse, 
+    CompatibilityRequest, CompatibilityResponse, NatalRequest, NatalResponse, NatalAIResponse,
     StandardReportResponse, CompatibilityResponseNew, CompatibilityDetails,
     AICompatibilityReportRequest, AICompatibilityReportResponse
 )
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService, OpenCageService
-from services.ai_service import get_global_ai_service
+from services.ai_service import AIService, GroqAPIError, get_global_ai_service
 from supabase_client import get_supabase_client
 from core.config import settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["astrology"])
+
+_SIGN_NAMES = [
+    "Aries",
+    "Taurus",
+    "Gemini",
+    "Cancer",
+    "Leo",
+    "Virgo",
+    "Libra",
+    "Scorpio",
+    "Sagittarius",
+    "Capricorn",
+    "Aquarius",
+    "Pisces",
+]
+
+
+def _sign_from_longitude(longitude: float) -> str:
+    lon = float(longitude) % 360.0
+    return _SIGN_NAMES[int(lon // 30)]
+
+
+def _house_for_longitude(longitude: float, cusps: list[float]) -> int:
+    """Return house number 1-12 for a given ecliptic longitude, or 0 if unknown."""
+    if not cusps or len(cusps) < 12:
+        return 0
+
+    cusp0 = float(cusps[0]) % 360.0
+    normalized: list[float] = [cusp0]
+    current = cusp0
+    for i in range(1, 12):
+        nxt = float(cusps[i]) % 360.0
+        if nxt <= current:
+            nxt += 360.0
+        normalized.append(nxt)
+        current = nxt
+    normalized.append(normalized[0] + 360.0)
+
+    lon = float(longitude) % 360.0
+    if lon < cusp0:
+        lon += 360.0
+
+    for i in range(12):
+        if normalized[i] <= lon < normalized[i + 1]:
+            return i + 1
+    return 0
+
+
+def _angular_distance(a: float, b: float) -> float:
+    diff = abs((a - b + 180.0) % 360.0 - 180.0)
+    return float(diff)
+
+
+def _detect_major_aspects(planets: list[dict], *, max_items: int = 18, orb: float = 6.0) -> list[dict]:
+    """Detect major aspects among provided planets (expects dicts with name + longitude)."""
+    aspect_angles = {
+        "conjunction": 0.0,
+        "sextile": 60.0,
+        "square": 90.0,
+        "trine": 120.0,
+        "opposition": 180.0,
+    }
+
+    found: list[dict] = []
+    for i in range(len(planets)):
+        for j in range(i + 1, len(planets)):
+            p1 = planets[i]
+            p2 = planets[j]
+            lon1 = float(p1.get("longitude", 0.0))
+            lon2 = float(p2.get("longitude", 0.0))
+            diff = _angular_distance(lon1, lon2)
+            for aspect_name, angle in aspect_angles.items():
+                d = abs(diff - angle)
+                if d <= orb:
+                    found.append(
+                        {
+                            "planet_1": str(p1.get("planet") or p1.get("name") or ""),
+                            "planet_2": str(p2.get("planet") or p2.get("name") or ""),
+                            "aspect_type": aspect_name,
+                            "orb": round(float(d), 2),
+                        }
+                    )
+                    break
+
+    found.sort(key=lambda x: x.get("orb", 99.0))
+    return found[: max_items or 0]
 
 
 @router.post("/compatibility", response_model=CompatibilityResponse)
@@ -298,8 +388,8 @@ def compatibility_new(raw_payload: dict = Body(...)) -> CompatibilityResponseNew
         raise HTTPException(status_code=500, detail="Compatibility calculation failed")
 
 
-@router.post("/natal", response_model=NatalResponse)
-def natal(raw_payload: dict = Body(...)) -> NatalResponse:
+@router.post("/natal", response_model=NatalAIResponse)
+async def natal(raw_payload: dict = Body(...)) -> NatalAIResponse:
     """Generate natal chart with unknown birth time support and robust fallback"""
     try:
         payload = NatalRequest.model_validate(raw_payload)
@@ -371,7 +461,269 @@ def natal(raw_payload: dict = Body(...)) -> NatalResponse:
             detail=f"Chart generation failed: {str(e)}"
         )
 
-    return astrology.build_v2_natal_response(chart, payload.person)
+    # Deterministic chart meta (no prose returned from backend templates).
+    astrology_response = astrology.build_v2_natal_response(chart, payload.person)
+
+    meta_birth = {
+        "name": payload.person.name,
+        "birth_date": payload.person.birth_date,
+        "birth_time": payload.person.birth_time,
+        "time_unknown": payload.person.time_unknown,
+        "birth_place": payload.person.birth_place,
+        "lat": lat,
+        "lon": lon,
+        "resolved_address": addr,
+    }
+
+    # ---- Groq AI structured JSON (no silent fallbacks) ----
+    logger.info("GROQ_API_KEY loaded: %s", "Yes" if settings.GROQ_API_KEY else "No")
+    if not settings.GROQ_API_KEY:
+        logger.error("GROQ_API_KEY is missing - cannot call Groq API")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": {
+                    "type": "missing_groq_api_key",
+                    "message": "GROQ_API_KEY is not configured",
+                }
+            },
+        )
+
+    model_to_use = "openai/gpt-oss-120b"
+
+    # Build structured natal data for Groq prompt (sun/moon/rising, planets, houses, aspects).
+    local_tz = timezone(timedelta(hours=7))  # Asia/Ho_Chi_Minh (no DST)
+    date_obj = datetime.strptime(payload.person.birth_date, "%Y-%m-%d")
+    if payload.person.birth_time and not payload.person.time_unknown:
+        hh, mm = [int(x) for x in payload.person.birth_time.split(":")]
+        local_dt = datetime(date_obj.year, date_obj.month, date_obj.day, hh, mm, 0, tzinfo=local_tz)
+        houses_enabled = lat is not None and lon is not None
+    else:
+        # Time unknown => use noon for planet/aspect approximation; houses/ASC are unknown.
+        local_dt = datetime(date_obj.year, date_obj.month, date_obj.day, 12, 0, 0, tzinfo=local_tz)
+        houses_enabled = False
+
+    utc_dt = local_dt.astimezone(timezone.utc)
+    jd = swe.julday(
+        utc_dt.year,
+        utc_dt.month,
+        utc_dt.day,
+        utc_dt.hour + utc_dt.minute / 60.0 + utc_dt.second / 3600.0,
+    )
+
+    # Houses + cusps (Placidus)
+    cusps: list[float] = []
+    houses_data: list[dict] = []
+    if houses_enabled:
+        try:
+            houses_result = swe.houses(jd, float(lat), float(lon))
+            cusps = [float(houses_result[0][i]) for i in range(12)]
+            houses_data = [
+                {
+                    "house": i + 1,
+                    "sign": _sign_from_longitude(cusps[i]),
+                    "longitude": round(float(cusps[i]), 6),
+                }
+                for i in range(12)
+            ]
+        except Exception as e:
+            logger.warning("Failed to compute houses for natal prompt: %s", e)
+            cusps = []
+            houses_data = []
+
+    # Retrograde + planet houses
+    planet_constants = {
+        "Sun": swe.SUN,
+        "Moon": swe.MOON,
+        "Mercury": swe.MERCURY,
+        "Venus": swe.VENUS,
+        "Mars": swe.MARS,
+        "Jupiter": swe.JUPITER,
+        "Saturn": swe.SATURN,
+        "Uranus": swe.URANUS,
+        "Neptune": swe.NEPTUNE,
+        "Pluto": swe.PLUTO,
+    }
+
+    retrograde_by_planet: dict[str, bool] = {}
+    for planet_name, pid in planet_constants.items():
+        try:
+            result = swe.calc_ut(jd, pid)
+            speed = float(result[0][3]) if isinstance(result[0], (list, tuple)) and len(result[0]) > 3 else 0.0
+            retrograde_by_planet[planet_name] = speed < 0.0
+        except Exception:
+            retrograde_by_planet[planet_name] = False
+
+    planets_prompt: list[dict] = []
+    for p in (astrology_response.meta.planets or []):
+        house_num = _house_for_longitude(p.longitude, cusps) if houses_enabled else 0
+        planets_prompt.append(
+            {
+                "planet": p.name,
+                "sign": p.sign,
+                "house": int(house_num),
+                "retrograde": bool(retrograde_by_planet.get(p.name, False)),
+                "longitude": round(float(p.longitude), 6),
+                "degree": round(float(p.degree), 6) if p.degree is not None else None,
+            }
+        )
+
+    aspects_prompt = _detect_major_aspects(planets_prompt, max_items=18, orb=6.0)
+
+    natal_data_for_prompt = {
+        "person": {
+            "name": payload.person.name,
+            "birth_date": payload.person.birth_date,
+            "birth_time": payload.person.birth_time,
+            "time_unknown": payload.person.time_unknown,
+            "birth_place": payload.person.birth_place,
+            "lat": lat,
+            "lon": lon,
+            "resolved_address": addr,
+            "assumed_timezone": "+07:00",
+        },
+        "sun": astrology_response.meta.zodiac.sun,
+        "moon": astrology_response.meta.zodiac.moon,
+        "rising": astrology_response.meta.zodiac.rising,
+        "dominant_element": astrology_response.meta.zodiac.element,
+        "planets": planets_prompt,
+        "houses": houses_data,
+        "aspects": aspects_prompt,
+    }
+
+    required_schema_template = {
+        "core_identity": {
+            "sun_sign": {"sign": "", "house": 0, "interpretation": ""},
+            "moon_sign": {"sign": "", "house": 0, "interpretation": ""},
+            "rising_sign": {"sign": "", "interpretation": ""},
+            "summary": "",
+        },
+        "planets": [
+            {"planet": "", "sign": "", "house": 0, "retrograde": False, "interpretation": ""}
+        ],
+        "aspects": [{"planet_1": "", "planet_2": "", "aspect_type": "", "interpretation": ""}],
+        "love_profile": {"attachment_style": "", "strengths": "", "challenges": "", "advice": ""},
+        "career_analysis": {
+            "natural_strengths": "",
+            "best_fields": "",
+            "work_style": "",
+            "growth_advice": "",
+        },
+        "psychological_pattern": {"core_wound": "", "shadow_traits": "", "healing_direction": ""},
+        "practical_guidance": {"relationships": "", "career": "", "self_development": ""},
+    }
+
+    system_prompt = """You are a professional astrologer generating a structured natal chart interpretation.
+
+You MUST return valid JSON only.
+Do NOT use markdown.
+Do NOT add explanations outside JSON.
+Do NOT change field names.
+All interpretation text must be in Vietnamese.
+Each interpretation section must be detailed and personalized.
+NO extra keys allowed.
+If you output invalid JSON, the system will fail."""
+
+    natal_data_json = json.dumps(natal_data_for_prompt, ensure_ascii=False, indent=2, sort_keys=True)
+    schema_json = json.dumps(required_schema_template, ensure_ascii=False, indent=2, sort_keys=True)
+
+    # Prompt sent to Groq (user message). Must produce JSON only, matching schema exactly.
+    user_prompt = f"""Here is the natal chart data:
+
+{natal_data_json}
+
+Generate the interpretation following EXACT schema.
+
+STRICT OUTPUT RULES:
+- Return ONLY a JSON object, nothing else.
+- No markdown, no code fences, no commentary.
+- Do not add/remove/rename keys.
+- No extra keys anywhere.
+- Use integers for all `house` fields (use 0 if unknown).
+- Use boolean for `retrograde`.
+- Do not output `null` for any string field; use an empty string \"\" if unknown.
+- The `planets` array must include one item for each input planet in `planets` (same order).
+- The `aspects` array must include items for the provided `aspects` input (you may include fewer if input is empty).
+- All `sign`, `house`, and `retrograde` values must match the input data.
+
+REQUIRED SCHEMA (must match exactly):
+{schema_json}
+""".strip()
+
+    try:
+        ai_service = AIService(
+            settings.GROQ_API_KEY,
+            base_url=settings.GROQ_BASE_URL,
+            model=model_to_use,
+            timeout_seconds=settings.GROQ_TIMEOUT_SECONDS,
+        )
+
+        logger.info("Calling Groq API with model: %s", model_to_use)
+        raw_ai = await ai_service.create_chat_completion(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.7,
+            max_tokens=4096,
+        )
+        logger.info("Groq API response received")
+
+        try:
+            parsed = json.loads(raw_ai)
+        except Exception:
+            logger.error("Groq returned invalid JSON. Raw response: %s", raw_ai)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": {
+                        "type": "invalid_groq_json",
+                        "message": "Groq returned invalid JSON for natal interpretation",
+                    }
+                },
+            )
+
+        try:
+            response_obj = NatalAIResponse(meta=meta_birth, astrology_ai=parsed)
+        except ValidationError as ve:
+            logger.error("Groq returned JSON that does not match required schema. Raw response: %s", raw_ai)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": {
+                        "type": "invalid_groq_schema",
+                        "message": "Groq JSON does not match required schema",
+                        "details": ve.errors(),
+                    }
+                },
+            )
+
+    except GroqAPIError as e:
+        logger.error("Groq API call failed (status=%s): %s", e.status_code, str(e))
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": {
+                    "type": "groq_api_error",
+                    "message": str(e),
+                    "status_code": e.status_code,
+                    "response": e.response_text,
+                }
+            },
+        )
+    except Exception as e:
+        logger.exception("Unexpected error calling Groq API")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": {
+                    "type": "groq_call_failed",
+                    "message": str(e),
+                }
+            },
+        )
+
+    return response_obj
 
 @router.post("/natal/standard", response_model=StandardReportResponse)
 def natal_standard(raw_payload: dict = Body(...)) -> StandardReportResponse:

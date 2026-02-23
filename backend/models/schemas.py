@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from pydantic import RootModel
 
+
+class StrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
 
 
 class BirthInfo(BaseModel):
@@ -193,6 +196,80 @@ class NatalResponse(BaseModel):
     meta: ResponseMeta
     sections: list[ResultSection]
 
+
+class NatalAISignBlock(StrictModel):
+    sign: str
+    house: int
+    interpretation: str
+
+
+class NatalAIRisingBlock(StrictModel):
+    sign: str
+    interpretation: str
+
+
+class NatalAICoreIdentity(StrictModel):
+    sun_sign: NatalAISignBlock
+    moon_sign: NatalAISignBlock
+    rising_sign: NatalAIRisingBlock
+    summary: str
+
+
+class NatalAIPlanet(StrictModel):
+    planet: str
+    sign: str
+    house: int
+    retrograde: bool
+    interpretation: str
+
+
+class NatalAIAspect(StrictModel):
+    planet_1: str
+    planet_2: str
+    aspect_type: str
+    interpretation: str
+
+
+class NatalAILoveProfile(StrictModel):
+    attachment_style: str
+    strengths: str
+    challenges: str
+    advice: str
+
+
+class NatalAICareerAnalysis(StrictModel):
+    natural_strengths: str
+    best_fields: str
+    work_style: str
+    growth_advice: str
+
+
+class NatalAIPsychologicalPattern(StrictModel):
+    core_wound: str
+    shadow_traits: str
+    healing_direction: str
+
+
+class NatalAIPracticalGuidance(StrictModel):
+    relationships: str
+    career: str
+    self_development: str
+
+
+class NatalAstrologyAI(StrictModel):
+    core_identity: NatalAICoreIdentity
+    planets: list[NatalAIPlanet]
+    aspects: list[NatalAIAspect]
+    love_profile: NatalAILoveProfile
+    career_analysis: NatalAICareerAnalysis
+    psychological_pattern: NatalAIPsychologicalPattern
+    practical_guidance: NatalAIPracticalGuidance
+
+
+class NatalAIResponse(BaseModel):
+    meta: dict[str, object]
+    astrology_ai: NatalAstrologyAI
+ 
 class StandardReportResponse(BaseModel):
     """Standard format report response - plain text output"""
     report: str
@@ -278,4 +355,3 @@ class AICompatibilityReportResponse(BaseModel):
     wordCount: int
     report: str
     model: str
-
