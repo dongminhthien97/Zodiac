@@ -10,15 +10,22 @@ Key principles:
 - Validation before merge
 - Fallback never returns 500
 - ~40% token optimization
+- Uses production-safe AIService with strict JSON mode
 """
 from __future__ import annotations
 
 import json
 import logging
 import re
-from typing import Any, Optional
+import time
+from typing import Any, Optional, Callable
 
-from services.ai_service import AIService
+from services.ai_service import (
+    AIService,
+    safe_parse_json,
+    fallback_natal_response,
+    fallback_micro_response,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +34,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 GROQ_CONFIG = {
     "temperature": 0.3,
-    "top_p": 0.8,
     "max_tokens": 700,  # Never exceed 800
-    "presence_penalty": 0.0,
-    "frequency_penalty": 0.0,
 }
 
 # ---------------------------------------------------------------------------

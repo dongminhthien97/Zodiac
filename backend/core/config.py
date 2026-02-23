@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     GROQ_API_KEY: str = ""
     GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
-    GROQ_MODEL: str = "openai/gpt-oss-120b"
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
     GROQ_TIMEOUT_SECONDS: float = 60.0
     OPENCAGE_API_KEY: str = ""
     GOOGLE_API_KEY: str = ""

@@ -14,7 +14,13 @@ from models.schemas import (
 )
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService, OpenCageService
-from services.ai_service import AIService, GroqAPIError, get_global_ai_service
+from services.ai_service import (
+    AIService,
+    GroqAPIError,
+    get_global_ai_service,
+    fallback_natal_response,
+    safe_parse_json,
+)
 from services.natal_prompt_builder import build_natal_prompts, build_natal_data_payload
 from services.natal_micro_service import NatalMicroService
 from supabase_client import get_supabase_client
@@ -491,7 +497,7 @@ async def natal(raw_payload: dict = Body(...)) -> NatalAIResponse:
             },
         )
 
-    model_to_use = "openai/gpt-oss-120b"
+    model_to_use = "llama-3.3-70b-versatile"  # Default model for natal chart analysis
 
     # Build structured natal data for Groq prompt (sun/moon/rising, planets, houses, aspects).
     local_tz = timezone(timedelta(hours=7))  # Asia/Ho_Chi_Minh (no DST)
