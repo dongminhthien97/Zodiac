@@ -8,13 +8,15 @@ from routers.chart import router as chart_router
 from routers.zodiac_ai import router as zodiac_ai_router
 
 # Import config and startup logging
-from core.config import settings, log_startup_info
+from core.config import get_settings, settings, log_startup_info
 
 # Configure logging
 logging.basicConfig(
     level=settings.LOG_LEVEL,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Zodiac Compatibility Checker",
@@ -37,8 +39,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Log startup information
-log_startup_info()
+@app.on_event("startup")
+async def on_startup() -> None:
+    """Railway/production startup checks (do not leak secrets)."""
+    s = get_settings()
+    log_startup_info()
+
+    missing = s.missing_required()
+    if missing:
+        logger.warning("Missing required environment variables: %s", ", ".join(missing))
+        if s.STRICT_ENV:
+            raise RuntimeError(f"Missing required environment variables: {', '.join(missing)}")
 
 # Mount routers
 app.include_router(astrology_router, prefix="/api")

@@ -177,7 +177,7 @@ async def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
 Hãy cung cấp một bản phân tích toàn diện, sâu sắc và thực tế."""
         
         # Generate AI report using Groq API
-        ai_service_instance = get_global_ai_service()
+        ai_service_instance = get_global_ai_service(settings)
         if ai_service_instance:
             ai_report = await ai_service_instance.generate_long_report(prompt, min_words=1000)
         else:

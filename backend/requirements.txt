@@ -17,6 +17,7 @@ groq  # Groq Python SDK (OpenAI-compatible)
 
 # Utilities
 python-dotenv>=1.0.0  # Environment variable management
+pydantic-settings>=2.0.0  # BaseSettings for config management
 
 # HTTP client for async requests
 httpx>=0.27.0  # Async HTTP client for Groq API

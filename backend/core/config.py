@@ -1,59 +1,50 @@
 from __future__ import annotations
 
 import logging
-import os
+from functools import lru_cache
 
 from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
-# Load environment variables from .env file
-load_dotenv()
-
-
-def _env_bool(name: str, default: bool = False) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+# Local dev: load `.env` if present. Railway: values come from the Variables tab.
+load_dotenv(override=False)
 
 
 def _split_csv(value: str) -> list[str]:
     return [part.strip() for part in value.split(",") if part.strip()]
 
 
-class Settings:
-    """Application settings loaded from environment variables.
+class Settings(BaseSettings):
+    """Application settings (Railway + local `.env`)."""
 
-    Uses os.getenv so missing environment variables never crash on import.
-    """
+    model_config = SettingsConfigDict(extra="ignore")
 
-    # Runtime / logging
-    DEBUG: bool = _env_bool("DEBUG", False)
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    DEBUG: bool = False
+    LOG_LEVEL: str = "INFO"
 
-    # CORS Configuration (comma-separated)
-    CORS_ALLOW_ORIGINS: str = os.getenv("CORS_ALLOW_ORIGINS", "")
-    CORS_ALLOW_CREDENTIALS: bool = _env_bool("CORS_ALLOW_CREDENTIALS", False)
+    CORS_ALLOW_ORIGINS: str = ""
+    CORS_ALLOW_CREDENTIALS: bool = False
 
-    # AI Service Configuration
-    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    OPENCAGE_API_KEY: str = os.getenv("OPENCAGE_API_KEY", "")
-    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
-    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    
-    # Database Configuration
-    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
-    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
-    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    
-    # Geocoding Configuration
-    GEONAMES_USERNAME: str = os.getenv("GEONAMES_USERNAME", "century.boy")
+    GROQ_API_KEY: str = ""
+    OPENCAGE_API_KEY: str = ""
+    GOOGLE_API_KEY: str = ""
+    ANTHROPIC_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""
+
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+
+    GEONAMES_USERNAME: str = "century.boy"
+
+    # If true, fail startup when required env vars are missing.
+    STRICT_ENV: bool = False
 
     @property
     def cors_allow_origins_list(self) -> list[str]:
-        origins = _split_csv(self.CORS_ALLOW_ORIGINS)
+        origins = _split_csv(self.CORS_ALLOW_ORIGINS or "")
         if not origins and self.DEBUG:
             origins = [
                 "http://localhost:5173",
@@ -74,29 +65,34 @@ class Settings:
     def supabase_key_effective(self) -> str:
         return self.SUPABASE_SERVICE_ROLE_KEY or self.SUPABASE_KEY
 
-# Global settings instance
-settings = Settings()
+    def missing_required(self) -> list[str]:
+        """Return missing env vars for core features."""
+        missing: list[str] = []
+        if not self.OPENCAGE_API_KEY:
+            missing.append("OPENCAGE_API_KEY")
+        if not self.GROQ_API_KEY:
+            missing.append("GROQ_API_KEY")
+        return missing
 
-def _legacy_log_startup_info():
-    """Legacy startup logging (kept for backward compatibility)."""
-    print("🚀 Application Configuration:")
-    print(f"  - GROQ_API_KEY loaded: {'Yes' if settings.GROQ_API_KEY else 'No'}")
-    print(f"  - CORS_ALLOW_ORIGINS: {settings.CORS_ALLOW_ORIGINS}")
-    print(f"  - CORS_ALLOW_CREDENTIALS: {settings.CORS_ALLOW_CREDENTIALS}")
-    print(f"  - LOG_LEVEL: {settings.LOG_LEVEL}")
-    print(f"  - GEONAMES_USERNAME: {settings.GEONAMES_USERNAME}")
-    print(f"  - SUPABASE_URL configured: {'Yes' if settings.SUPABASE_URL else 'No'}")
-    print(f"  - GOOGLE_API_KEY configured: {'Yes' if settings.GOOGLE_API_KEY else 'No'}")
-    print()
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()
 
 
 def log_startup_info() -> None:
     """Log startup information (without printing secret values)."""
-    logger.info("Application configuration:")
-    logger.info("  GROQ_API_KEY configured: %s", "Yes" if settings.GROQ_API_KEY else "No")
-    logger.info("  OPENCAGE_API_KEY configured: %s", "Yes" if settings.OPENCAGE_API_KEY else "No")
-    logger.info("  SUPABASE_URL configured: %s", "Yes" if settings.SUPABASE_URL else "No")
-    logger.info("  SUPABASE_KEY configured: %s", "Yes" if settings.supabase_key_effective else "No")
-    logger.info("  CORS_ALLOW_ORIGINS: %s", settings.CORS_ALLOW_ORIGINS or "(empty)")
-    logger.info("  CORS_ALLOW_CREDENTIALS: %s", settings.CORS_ALLOW_CREDENTIALS)
-    logger.info("  LOG_LEVEL: %s", settings.LOG_LEVEL)
+    s = get_settings()
+    logger.info("Startup configuration:")
+    logger.info("  DEBUG: %s", s.DEBUG)
+    logger.info("  LOG_LEVEL: %s", s.LOG_LEVEL)
+    logger.info("  CORS_ALLOW_ORIGINS set: %s", "Yes" if s.CORS_ALLOW_ORIGINS else "No")
+    logger.info("  CORS_ALLOW_CREDENTIALS: %s", s.CORS_ALLOW_CREDENTIALS)
+    logger.info("  GROQ_API_KEY configured: %s", "Yes" if s.GROQ_API_KEY else "No")
+    logger.info("  OPENCAGE_API_KEY configured: %s", "Yes" if s.OPENCAGE_API_KEY else "No")
+    logger.info("  SUPABASE_URL configured: %s", "Yes" if s.SUPABASE_URL else "No")
+    logger.info("  SUPABASE_KEY configured: %s", "Yes" if s.supabase_key_effective else "No")
+    logger.info("  GEONAMES_USERNAME: %s", s.GEONAMES_USERNAME)

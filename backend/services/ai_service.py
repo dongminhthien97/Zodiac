@@ -2,6 +2,7 @@ from __future__ import annotations
 import logging
 import httpx
 import re
+from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +10,9 @@ try:
     from groq import AsyncGroq  # type: ignore
 except Exception:
     AsyncGroq = None
+
+if TYPE_CHECKING:
+    from core.config import Settings
 
 class AIService:
     def __init__(self, api_key: str) -> None:
@@ -186,26 +190,28 @@ For a more detailed analysis, please request a longer report.
 
 
 # Factory function to create AI service instance
-def get_ai_service():
-    """Create and return an AI service instance with proper error handling"""
-    from core.config import settings
-    
-    if not settings.GROQ_API_KEY:
+def get_ai_service(app_settings: "Settings") -> "AIService | None":
+    """Create and return an AI service instance with proper error handling."""
+    if not app_settings.GROQ_API_KEY:
         logger.warning("GROQ_API_KEY not configured - AI features will be disabled")
         return None
     
     try:
-        return AIService(settings.GROQ_API_KEY)
+        return AIService(app_settings.GROQ_API_KEY)
     except Exception as e:
-        logger.error(f"Failed to initialize AI service: {e}")
+        logger.error("Failed to initialize AI service: %s", e)
         return None
 
 # Global AI service instance (lazy initialization)
 _ai_service_instance = None
 
-def get_global_ai_service():
-    """Get or create the global AI service instance"""
+def get_global_ai_service(app_settings: "Settings | None" = None) -> "AIService | None":
+    """Get or create the global AI service instance."""
     global _ai_service_instance
     if _ai_service_instance is None:
-        _ai_service_instance = get_ai_service()
+        if app_settings is None:
+            from core.config import get_settings
+
+            app_settings = get_settings()
+        _ai_service_instance = get_ai_service(app_settings)
     return _ai_service_instance
