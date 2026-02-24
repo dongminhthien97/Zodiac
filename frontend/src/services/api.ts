@@ -4,12 +4,13 @@ import { mapStandardReportResponse } from '../lib/mappers/standardReportMapper';
 import { mapZodiacAIReportResponse } from '../lib/mappers/zodiacAIReportMapper';
 
 export const fetchCompatibility = async (payload: any) => {
-  const response = await api.post('/compatibility', payload);
+  // Use the new v2 endpoint with deterministic scoring and better error handling
+  const response = await api.post('/compatibility/v2', payload);
   console.log('🔍 Raw compatibility API response:', JSON.stringify(response.data, null, 2));
   
-  // Map the response to ensure consistent data structure
-  const mappedData = mapCompatibilityResponse(response.data);
-  return mappedData;
+  // The v2 endpoint returns data in the correct format directly
+  // No need for mapping - the response matches the expected structure
+  return response.data;
 }
 
 export const fetchNatal = async (payload: any) => {
