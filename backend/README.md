@@ -56,6 +56,47 @@ d:/Zodiac/
 └── README.md              # This file
 ```
 
+## 🖥️ Local Development
+
+### Windows PowerShell Users
+
+**Important:** Windows PowerShell (5.x) does not support `&&` as a command separator. Use `;` instead:
+
+```powershell
+# ❌ DON'T use && (fails in Windows PowerShell 5.x)
+cd d:/Zodiac/backend && python -m pytest
+
+# ✅ DO use ; (works in all versions)
+cd d:/Zodiac/backend; python -m pytest
+
+# ✅ OR run commands separately
+cd d:/Zodiac/backend
+python -m pytest
+```
+
+### Running Tests
+
+```bash
+# Linux/Mac/Git Bash/PowerShell 7+
+cd d:/Zodiac/backend && python -m pytest tests/ -v
+
+# Windows PowerShell 5.x
+cd d:/Zodiac/backend; python -m pytest tests/ -v
+
+# Or run directly
+python -m pytest d:/Zodiac/backend/tests/ -v
+```
+
+### Starting the Development Server
+
+```bash
+# Linux/Mac/Git Bash/PowerShell 7+
+cd d:/Zodiac/backend && uvicorn main:app --reload --port 8000
+
+# Windows PowerShell 5.x
+cd d:/Zodiac/backend; uvicorn main:app --reload --port 8000
+```
+
 ## 🛠️ Backend Dependencies
 
 - **FastAPI** - Web framework

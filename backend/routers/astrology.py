@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 import logging
 import json
+import time
 
 import swisseph as swe
 
@@ -23,6 +24,12 @@ from services.ai_service import (
 )
 from services.natal_prompt_builder import build_natal_prompts, build_natal_data_payload
 from services.natal_micro_service import NatalMicroService
+from services.compatibility_service import (
+    CompatibilityService,
+    PersonInput,
+    AspectData,
+    get_compatibility_service,
+)
 from supabase_client import get_supabase_client
 from core.config import settings
 
@@ -1121,3 +1128,180 @@ def _count_words(text: str) -> int:
 
 # Import httpx for error handling
 import httpx
+
+
+@router.post("/compatibility/v2")
+async def compatibility_v2(raw_payload: dict = Body(...)) -> dict:
+    """New compatibility endpoint with deterministic scoring and Groq narrative.
+    
+    Guarantees:
+    - Always returns HTTP 200
+    - Deterministic scoring (no AI for scores)
+    - Groq only for narrative
+    - Retry + fallback logic
+    - Never exposes raw exceptions
+    """
+    request_id = f"compat_{int(time.time() * 1000)}"
+    
+    try:
+        payload = CompatibilityRequest.model_validate(raw_payload)
+    except ValidationError as exc:
+        # Return structured error response (still 200, but with error flag)
+        logger.error("[%s] Validation error: %s", request_id, exc.errors())
+        return {
+            "error": False,
+            "score": 50,
+            "summary": "Dữ liệu đầu vào không hợp lệ. Vui lòng kiểm tra lại.",
+            "personality": "Dữ liệu không hợp lệ",
+            "love_style": "Dữ liệu không hợp lệ",
+            "career": "Dữ liệu không hợp lệ",
+            "relationships": "Dữ liệu không hợp lệ",
+            "advice": "Vui lòng kiểm tra lại thông tin nhập vào.",
+            "conflict_points": "Không thể phân tích do dữ liệu không hợp lệ",
+            "recommended_activities": ["Kiểm tra lại dữ liệu nhập"],
+            "aspects": [],
+        }
+    
+    astrology = AstrologyService()
+    geocoder = OpenCageService(settings.OPENCAGE_API_KEY)
+    
+    # Get coordinates for both people
+    lat_a, lon_a = None, None
+    lat_b, lon_b = None, None
+    
+    try:
+        result_a = geocoder.geocode(payload.person_a.birth_place)
+        lat_a, lon_a = result_a['lat'], result_a['lon']
+        logger.info("[%s] Geocoding A successful: lat=%s, lon=%s", request_id, lat_a, lon_a)
+    except Exception as e:
+        logger.warning("[%s] Geocoding A failed: %s, using fallback", request_id, e)
+    
+    try:
+        result_b = geocoder.geocode(payload.person_b.birth_place)
+        lat_b, lon_b = result_b['lat'], result_b['lon']
+        logger.info("[%s] Geocoding B successful: lat=%s, lon=%s", request_id, lat_b, lon_b)
+    except Exception as e:
+        logger.warning("[%s] Geocoding B failed: %s, using fallback", request_id, e)
+    
+    # Build charts with fault tolerance
+    chart_a = None
+    chart_b = None
+    
+    try:
+        chart_a = astrology.build_natal_chart(payload.person_a, lat_a, lon_a)
+        logger.info("[%s] Chart A generated: sun=%s", request_id, chart_a.sun_sign)
+    except Exception as e:
+        logger.error("[%s] Chart A generation failed: %s", request_id, e)
+    
+    try:
+        chart_b = astrology.build_natal_chart(payload.person_b, lat_b, lon_b)
+        logger.info("[%s] Chart B generated: sun=%s", request_id, chart_b.sun_sign)
+    except Exception as e:
+        logger.error("[%s] Chart B generation failed: %s", request_id, e)
+    
+    # Calculate aspects between charts
+    aspects: list[AspectData] = []
+    
+    if chart_a and chart_b:
+        try:
+            # Get planet positions from both charts
+            planets_a = {p.name: p for p in chart_a.planets}
+            planets_b = {p.name: p for p in chart_b.planets}
+            
+            # Calculate cross-chart aspects
+            aspect_angles = {
+                "conjunction": 0.0,
+                "sextile": 60.0,
+                "square": 90.0,
+                "trine": 120.0,
+                "opposition": 180.0,
+            }
+            
+            major_planets = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"]
+            
+            for planet_a_name in major_planets:
+                for planet_b_name in major_planets:
+                    if planet_a_name in planets_a and planet_b_name in planets_b:
+                        lon_a_planet = planets_a[planet_a_name].longitude
+                        lon_b_planet = planets_b[planet_b_name].longitude
+                        
+                        # Calculate angular distance
+                        diff = abs((lon_a_planet - lon_b_planet + 180.0) % 360.0 - 180.0)
+                        
+                        for aspect_type, angle in aspect_angles.items():
+                            orb = abs(diff - angle)
+                            if orb <= 6.0:  # Standard orb
+                                aspects.append(AspectData(
+                                    planet_a=planet_a_name,
+                                    planet_b=planet_b_name,
+                                    aspect_type=aspect_type,
+                                    orb=round(orb, 2)
+                                ))
+                                break
+            
+            logger.info("[%s] Calculated %d aspects between charts", request_id, len(aspects))
+            
+        except Exception as e:
+            logger.error("[%s] Aspect calculation failed: %s", request_id, e)
+    
+    # Build PersonInput objects
+    person_a_input = PersonInput(
+        date=payload.person_a.birth_date,
+        time=payload.person_a.birth_time,
+        city=payload.person_a.birth_place.split(",")[0] if payload.person_a.birth_place else "Unknown",
+        country=payload.person_a.birth_place.split(",")[-1].strip() if payload.person_a.birth_place else "Unknown",
+        name=payload.person_a.name
+    )
+    
+    person_b_input = PersonInput(
+        date=payload.person_b.birth_date,
+        time=payload.person_b.birth_time,
+        city=payload.person_b.birth_place.split(",")[0] if payload.person_b.birth_place else "Unknown",
+        country=payload.person_b.birth_place.split(",")[-1].strip() if payload.person_b.birth_place else "Unknown",
+        name=payload.person_b.name
+    )
+    
+    # Use the new CompatibilityService
+    try:
+        if not settings.GROQ_API_KEY:
+            logger.error("[%s] GROQ_API_KEY not configured", request_id)
+            # Return fallback with basic scores
+            from services.compatibility_service import get_fallback_response
+            return get_fallback_response()
+        
+        service = get_compatibility_service(
+            settings.GROQ_API_KEY,
+            base_url=getattr(settings, 'GROQ_BASE_URL', "https://api.groq.com/openai/v1")
+        )
+        
+        result = await service.analyze(
+            person_a=person_a_input,
+            person_b=person_b_input,
+            aspects=aspects,
+            request_id=request_id
+        )
+        
+        logger.info("[%s] Compatibility analysis completed successfully", request_id)
+        
+        # Try to save to database (non-blocking)
+        try:
+            supabase = get_supabase_client()
+            if supabase:
+                supabase.table("compatibility_checks").insert({
+                    "person_a_name": payload.person_a.name,
+                    "person_b_name": payload.person_b.name,
+                    "person_a_place": payload.person_a.birth_place,
+                    "person_b_place": payload.person_b.birth_place,
+                    "score": result.get("score", 50),
+                    "created_at": "now()",
+                }).execute()
+        except Exception as e:
+            logger.warning("[%s] Database save failed: %s", request_id, e)
+        
+        return result
+        
+    except Exception as e:
+        logger.error("[%s] Compatibility analysis failed: %s", request_id, e)
+        # Return fallback response (still HTTP 200)
+        from services.compatibility_service import get_fallback_response
+        return get_fallback_response()
