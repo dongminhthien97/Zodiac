@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from models.schemas import NatalAstrologyAI, NatalPlanet, NatalAspect
+from models.schemas import NatalAstrologyAI, NatalAIPlanet, NatalAIAspect
 from services.astrology_engine import ChartData, PlanetData
 
 
@@ -127,7 +127,7 @@ class NatalTransformer:
     def _build_planets(
         planets_data: List[PlanetData],
         ai_interpretations: Optional[Dict[str, Any]]
-    ) -> List[NatalPlanet]:
+    ) -> List[NatalAIPlanet]:
         """Build planets list with merged engine data and AI interpretations."""
         planets = []
         
@@ -143,7 +143,7 @@ class NatalTransformer:
                 degree = round(planet_data.longitude % 30, 2)
             
             # Create planet entry
-            planet = NatalPlanet(
+            planet = NatalAIPlanet(
                 planet=NatalTransformer._get_vietnamese_planet_name(planet_data.name),
                 sign=planet_data.sign,
                 longitude=round(planet_data.longitude, 2),
@@ -161,7 +161,7 @@ class NatalTransformer:
     def _build_aspects(
         aspects_data: List[AspectData],
         ai_interpretations: Optional[Dict[str, Any]]
-    ) -> List[NatalAspect]:
+    ) -> List[NatalAIAspect]:
         """Build aspects list with AI interpretations."""
         aspects = []
         
@@ -171,7 +171,7 @@ class NatalTransformer:
                 ai_interpretations, aspect_data
             )
             
-            aspect = NatalAspect(
+            aspect = NatalAIAspect(
                 aspect_type=aspect_data.aspect_type,
                 planet_1=aspect_data.planet_a,
                 planet_2=aspect_data.planet_b,
@@ -310,7 +310,7 @@ class NatalTransformer:
                 "rising_sign": {"sign": "Unknown", "interpretation": "Đang phân tích..."}
             },
             planets=[
-                NatalPlanet(
+                NatalAIPlanet(
                     planet="Mặt Trời",
                     sign="Unknown",
                     longitude=0.0,
@@ -319,7 +319,7 @@ class NatalTransformer:
                     retrograde=False,
                     interpretation="Đang phân tích..."
                 ),
-                NatalPlanet(
+                NatalAIPlanet(
                     planet="Mặt Trăng",
                     sign="Unknown",
                     longitude=0.0,
