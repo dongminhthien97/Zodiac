@@ -15,13 +15,7 @@ from models.schemas import (
 )
 from services.astrology_service import AstrologyService
 from services.geocoding_service import GeocodingService, OpenCageService
-from services.ai_service import (
-    AIService,
-    GroqAPIError,
-    get_global_ai_service,
-    fallback_natal_response,
-    safe_parse_json,
-)
+from services.ai.ai_service import AIService, get_global_ai_service
 from services.natal_prompt_builder import build_natal_prompts, build_natal_data_payload
 from services.natal_micro_service import NatalMicroService
 from services.compatibility_service import (
