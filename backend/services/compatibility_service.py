@@ -169,36 +169,38 @@ def get_fallback_response(scores: Optional[CompatibilityScores] = None) -> dict:
         )
     
     return {
-        "score": scores.overall_score,
-        "summary": "Phân tích tương thích đang được xử lý. Vui lòng thử lại sau.",
-        "personality": f"Điểm tương thích tính cách: {scores.emotional_compatibility}/100",
-        "love_style": f"Điểm kết nối cảm xúc: {scores.emotional_compatibility}/100",
-        "career": f"Điểm tương thích công việc: {scores.mental_compatibility}/100",
-        "relationships": f"Điểm ổn định mối quan hệ: {scores.stability_score}/100",
-        "advice": "Hãy dành thời gian tìm hiểu nhau và xây dựng niềm tin.",
-        "conflict_points": f"Rủi ro xung đột: {scores.conflict_risk}/100 - Cần kiên nhẫn và thấu hiểu.",
-        "recommended_activities": [
-            "Dành thời gian trò chuyện sâu",
-            "Tham gia hoạt động chung",
-            "Xây dựng niềm tin từng bước"
+        "overall_score": scores.overall_score,
+        "emotional_compatibility": scores.emotional_compatibility,
+        "mental_compatibility": scores.mental_compatibility,
+        "physical_chemistry": scores.physical_chemistry,
+        "stability_score": scores.stability_score,
+        "conflict_risk": scores.conflict_risk,
+        "long_term_potential": scores.long_term_potential,
+        "relationship_summary": {
+            "overview": "Phân tích tương thích đang được xử lý. Vui lòng thử lại sau.",
+            "core_dynamic": "Đang phân tích động lực cốt lõi của mối quan hệ.",
+            "relationship_purpose": "Đang xác định mục đích và hướng phát triển của mối quan hệ."
+        },
+        "strengths": [
+            "Cả hai đều có tiềm năng phát triển tích cực",
+            "Có khả năng học hỏi và thích nghi",
+            "Có nền tảng tương thích cơ bản"
         ],
-        "aspects": [
-            "Dữ liệu aspect đang được xử lý"
+        "challenges": [
+            "Cần thêm thời gian để hiểu nhau sâu sắc hơn",
+            "Có thể gặp khó khăn trong giao tiếp ban đầu",
+            "Cần xây dựng niềm tin lẫn nhau"
         ],
-        "ai_analysis": "Phân tích AI đang được xử lý. Vui lòng thử lại sau.",
-        "detailed_reasoning": f"""
-Điểm số tổng quan: {scores.overall_score}/100
-
-Phân tích chi tiết:
-- Tương thích cảm xúc: {scores.emotional_compatibility}/100
-- Tương thích tư duy: {scores.mental_compatibility}/100  
-- Hóa học thể chất: {scores.physical_chemistry}/100
-- Điểm ổn định: {scores.stability_score}/100
-- Rủi ro xung đột: {scores.conflict_risk}/100
-- Tiềm năng lâu dài: {scores.long_term_potential}/100
-
-Lưu ý: Đây là dữ liệu fallback. Vui lòng thử lại để có phân tích chi tiết.
-"""
+        "green_flags": [
+            "Có tiềm năng tương thích cảm xúc",
+            "Có khả năng hỗ trợ lẫn nhau",
+            "Có xu hướng phát triển tích cực"
+        ],
+        "red_flags": [
+            "Cần thận trọng trong việc thể hiện cảm xúc",
+            "Có thể xảy ra hiểu lầm trong giao tiếp",
+            "Cần thời gian để xây dựng sự tin tưởng"
+        ]
     }
 
 
@@ -647,30 +649,43 @@ class CompatibilityService:
                 return value
             return default
         
-        # Build response with validated data
+        # Build response with validated data - NEW STRUCTURE
         response = {
-            "score": scores.overall_score,
-            "summary": narrative.get("summary", "Phân tích tương thích hoàn tất."),
-            "personality": narrative.get("personality", f"Điểm tương thích tính cách: {scores.emotional_compatibility}/100"),
-            "love_style": narrative.get("love_style", f"Điểm kết nối cảm xúc: {scores.emotional_compatibility}/100"),
-            "career": narrative.get("career", f"Điểm tương thích công việc: {scores.mental_compatibility}/100"),
-            "relationships": narrative.get("relationships", f"Điểm ổn định mối quan hệ: {scores.stability_score}/100"),
-            "advice": narrative.get("advice", "Hãy dành thời gian tìm hiểu nhau."),
-            "conflict_points": narrative.get("conflict_points", f"Rủi ro xung đột: {scores.conflict_risk}/100"),
-            "recommended_activities": safe_list(narrative.get("recommended_activities"), [
-                "Dành thời gian trò chuyện sâu",
-                "Tham gia hoạt động chung",
-                "Xây dựng niềm tin từng bước"
+            "overall_score": scores.overall_score,
+            "emotional_compatibility": scores.emotional_compatibility,
+            "mental_compatibility": scores.mental_compatibility,
+            "physical_chemistry": scores.physical_chemistry,
+            "stability_score": scores.stability_score,
+            "conflict_risk": scores.conflict_risk,
+            "long_term_potential": scores.long_term_potential,
+            "relationship_summary": {
+                "overview": narrative.get("summary", "Phân tích tương thích hoàn tất."),
+                "core_dynamic": narrative.get("relationships", "Đang phân tích động lực cốt lõi của mối quan hệ."),
+                "relationship_purpose": narrative.get("advice", "Đang xác định mục đích và hướng phát triển của mối quan hệ.")
+            },
+            "strengths": safe_list(narrative.get("personality", []), [
+                "Cả hai đều có tiềm năng phát triển tích cực",
+                "Có khả năng học hỏi và thích nghi",
+                "Có nền tảng tương thích cơ bản"
             ]),
-            "aspects": safe_list(narrative.get("aspects"), [
-                "Dữ liệu aspect đã được phân tích"
+            "challenges": safe_list(narrative.get("conflict_points", []), [
+                "Cần thêm thời gian để hiểu nhau sâu sắc hơn",
+                "Có thể gặp khó khăn trong giao tiếp ban đầu",
+                "Cần xây dựng niềm tin lẫn nhau"
             ]),
-            "ai_analysis": narrative.get("ai_analysis"),
-            "detailed_reasoning": narrative.get("detailed_reasoning"),
+            "green_flags": safe_list(narrative.get("recommended_activities", []), [
+                "Có tiềm năng tương thích cảm xúc",
+                "Có khả năng hỗ trợ lẫn nhau",
+                "Có xu hướng phát triển tích cực"
+            ]),
+            "red_flags": safe_list(narrative.get("aspects", []), [
+                "Cần thận trọng trong việc thể hiện cảm xúc",
+                "Có thể xảy ra hiểu lầm trong giao tiếp",
+                "Cần thời gian để xây dựng sự tin tưởng"
+            ])
         }
         
-        # Remove None values for cleaner response
-        return {k: v for k, v in response.items() if v is not None}
+        return response
 
 
 # ---------------------------------------------------------------------------
