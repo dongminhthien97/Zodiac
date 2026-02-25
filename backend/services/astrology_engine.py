@@ -11,19 +11,20 @@ import swisseph as swe
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
+from pydantic import BaseModel, ConfigDict
 
 from models.compatibility_schema import CompatibilityResponse, RelationshipSummary
 
 
-@dataclass
-class PersonInput:
+class PersonInput(BaseModel):
     """Input data for a person."""
-    date: str
-    time: Optional[str]
-    city: str
-    country: str
-    name: Optional[str] = None
+    name: str | None = None
+    birth_date: str
+    birth_time: str | None = None
+    birth_place: str
     time_unknown: bool = False
+
+    model_config = ConfigDict(extra="forbid")
 
 
 @dataclass

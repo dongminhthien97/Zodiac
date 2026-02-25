@@ -218,9 +218,13 @@ class NatalAICoreIdentity(StrictModel):
 class NatalAIPlanet(StrictModel):
     planet: str
     sign: str
-    house: int
-    retrograde: bool
+    house: int | None = None
+    retrograde: bool = False
     interpretation: str
+
+    # Add missing fields passed by transformer
+    longitude: float | None = None
+    degree: float | None = None
 
 
 class NatalAIAspect(StrictModel):

@@ -118,10 +118,10 @@ class NatalServiceNew:
             astrology_ai = self.transformer.transform_to_natal_response(
                 chart=chart,
                 person_name=person.name or "Person",
-                person_birth_date=person.date,
-                person_birth_time=person.time,
-                person_time_unknown=False,  # We have coordinates
-                person_birth_place=person.city + ", " + person.country,
+                person_birth_date=person.birth_date,
+                person_birth_time=person.birth_time,
+                person_time_unknown=person.time_unknown,
+                person_birth_place=person.birth_place,
                 lat=lat,
                 lon=lon,
                 ai_interpretations=ai_interpretations

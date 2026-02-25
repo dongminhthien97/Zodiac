@@ -146,11 +146,11 @@ class NatalTransformer:
             planet = NatalAIPlanet(
                 planet=NatalTransformer._get_vietnamese_planet_name(planet_data.name),
                 sign=planet_data.sign,
-                longitude=round(planet_data.longitude, 2),
-                degree=degree,
                 house=planet_data.house,
                 retrograde=planet_data.speed < 0,
-                interpretation=interpretation or f"Phân tích {planet_data.name} đang được xử lý..."
+                interpretation=interpretation or f"Phân tích {planet_data.name} đang được xử lý...",
+                longitude=round(planet_data.longitude, 2),
+                degree=degree
             )
             
             planets.append(planet)
