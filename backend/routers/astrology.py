@@ -461,11 +461,10 @@ async def natal(raw_payload: dict = Body(...)) -> NatalAIResponse:
 
     # Build PersonInput object
     person_input = PersonInput(
-        date=payload.person.birth_date,
-        time=payload.person.birth_time,
-        city=payload.person.birth_place.split(",")[0] if payload.person.birth_place else "Unknown",
-        country=payload.person.birth_place.split(",")[-1].strip() if payload.person.birth_place else "Unknown",
         name=payload.person.name,
+        birth_date=payload.person.birth_date,
+        birth_time=payload.person.birth_time,
+        birth_place=payload.person.birth_place,
         time_unknown=payload.person.time_unknown
     )
 
