@@ -465,7 +465,8 @@ async def natal(raw_payload: dict = Body(...)) -> NatalAIResponse:
         time=payload.person.birth_time,
         city=payload.person.birth_place.split(",")[0] if payload.person.birth_place else "Unknown",
         country=payload.person.birth_place.split(",")[-1].strip() if payload.person.birth_place else "Unknown",
-        name=payload.person.name
+        name=payload.person.name,
+        time_unknown=payload.person.time_unknown
     )
 
     # Use the new NatalService
@@ -1041,7 +1042,8 @@ async def compatibility_v2(raw_payload: dict = Body(...)) -> dict:
         time=payload.person_a.birth_time,
         city=payload.person_a.birth_place.split(",")[0] if payload.person_a.birth_place else "Unknown",
         country=payload.person_a.birth_place.split(",")[-1].strip() if payload.person_a.birth_place else "Unknown",
-        name=payload.person_a.name
+        name=payload.person_a.name,
+        time_unknown=payload.person_a.time_unknown
     )
     
     person_b_input = PersonInput(
@@ -1049,7 +1051,8 @@ async def compatibility_v2(raw_payload: dict = Body(...)) -> dict:
         time=payload.person_b.birth_time,
         city=payload.person_b.birth_place.split(",")[0] if payload.person_b.birth_place else "Unknown",
         country=payload.person_b.birth_place.split(",")[-1].strip() if payload.person_b.birth_place else "Unknown",
-        name=payload.person_b.name
+        name=payload.person_b.name,
+        time_unknown=payload.person_b.time_unknown
     )
     
     # Use the new CompatibilityService

@@ -23,6 +23,7 @@ class PersonInput:
     city: str
     country: str
     name: Optional[str] = None
+    time_unknown: bool = False
 
 
 @dataclass
