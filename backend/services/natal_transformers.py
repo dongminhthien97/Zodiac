@@ -313,8 +313,6 @@ class NatalTransformer:
                 NatalAIPlanet(
                     planet="Mặt Trời",
                     sign="Unknown",
-                    longitude=0.0,
-                    degree=0.0,
                     house=1,
                     retrograde=False,
                     interpretation="Đang phân tích..."
@@ -322,8 +320,6 @@ class NatalTransformer:
                 NatalAIPlanet(
                     planet="Mặt Trăng",
                     sign="Unknown",
-                    longitude=0.0,
-                    degree=0.0,
                     house=4,
                     retrograde=False,
                     interpretation="Đang phân tích..."
