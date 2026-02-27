@@ -138,11 +138,11 @@ class AstrologyEngine:
     def _calculate_julian_day(self, person: PersonInput) -> float:
         """Calculate Julian day for a person's birth data."""
         # Parse date
-        date_obj = datetime.strptime(person.date, "%Y-%m-%d")
+        date_obj = datetime.strptime(person.birth_date, "%Y-%m-%d")
         
         # Handle time
-        if person.time and not person.time_unknown:
-            hh, mm = [int(x) for x in person.time.split(":")]
+        if person.birth_time and not person.time_unknown:
+            hh, mm = [int(x) for x in person.birth_time.split(":")]
             # Assume Vietnam timezone (+7:00) for now
             local_tz = timezone(timedelta(hours=7))
             local_dt = datetime(date_obj.year, date_obj.month, date_obj.day, hh, mm, 0, tzinfo=local_tz)

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
+from pathlib import Path
 
-from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
-# Local dev: load `.env` if present. Railway: values come from the Variables tab.
-load_dotenv(override=False)
+# Get the backend directory (parent of core/)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def _split_csv(value: str) -> list[str]:
@@ -19,7 +19,11 @@ def _split_csv(value: str) -> list[str]:
 class Settings(BaseSettings):
     """Application settings (Railway + local `.env`)."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=BASE_DIR / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"

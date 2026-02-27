@@ -478,10 +478,10 @@ async def natal(raw_payload: dict = Body(...)) -> NatalAIResponse:
             return NatalAIResponse(
                 meta={
                     "name": person_input.name,
-                    "birth_date": person_input.date,
-                    "birth_time": person_input.time,
+                    "birth_date": person_input.birth_date,
+                    "birth_time": person_input.birth_time,
                     "time_unknown": payload.person.time_unknown,
-                    "birth_place": person_input.city + ", " + person_input.country,
+                    "birth_place": person_input.birth_place,
                     "lat": lat,
                     "lon": lon,
                     "resolved_address": addr or "Fallback mode",

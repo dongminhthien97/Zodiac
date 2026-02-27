@@ -100,9 +100,9 @@ class NatalServiceNew:
             logger.info("[%s] Generating AI interpretations", request_id)
             ai_interpretations = await self.ai_service.generate_interpretations(
                 person_name=person.name or "Person",
-                person_birth_date=person.date,
-                person_birth_time=person.time,
-                person_birth_place=person.city + ", " + person.country,
+                person_birth_date=person.birth_date,
+                person_birth_time=person.birth_time,
+                person_birth_place=person.birth_place,
                 planets_data=planets_data,
                 aspects_data=aspects_data,
                 request_id=request_id
