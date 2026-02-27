@@ -62,7 +62,7 @@ class CompatibilityResponse(BaseModel):
         json_encoders = {
             int: lambda v: int(v),  # Ensure integers stay as integers
         }
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "overall_score": 75,
                 "emotional_compatibility": 80,

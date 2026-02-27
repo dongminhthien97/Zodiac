@@ -136,13 +136,13 @@ class NatalServiceNew:
             # Build final response
             meta = {
                 "name": person.name,
-                "birth_date": person.date,
-                "birth_time": person.time,
-                "time_unknown": False,
-                "birth_place": person.city + ", " + person.country,
+                "birth_date": person.birth_date,
+                "birth_time": person.birth_time,
+                "time_unknown": person.time_unknown,
+                "birth_place": person.birth_place,
                 "lat": lat,
                 "lon": lon,
-                "resolved_address": f"{person.city}, {person.country}",
+                "resolved_address": person.birth_place,
             }
             
             response = NatalAIResponse(
@@ -161,10 +161,10 @@ class NatalServiceNew:
             return NatalAIResponse(
                 meta={
                     "name": person.name,
-                    "birth_date": person.date,
-                    "birth_time": person.time,
+                    "birth_date": person.birth_date,
+                    "birth_time": person.birth_time,
                     "time_unknown": True,
-                    "birth_place": person.city + ", " + person.country,
+                    "birth_place": person.birth_place,
                     "lat": lat,
                     "lon": lon,
                     "resolved_address": "Fallback mode",

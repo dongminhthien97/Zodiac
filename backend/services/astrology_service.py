@@ -19,7 +19,6 @@ from models.schemas import (
     CompatibilityWork, CompatibilityRelationshipDynamics, CompatibilityConflictPoints
 )
 from utils.compatibility_data import ELEMENT_COMPATIBILITY, SIGN_TRAITS, SUN_SIGN_RANGES
-import google.genai as genai
 
 # 1. THIẾT LẬP CẤU HÌNH HỆ THỐNG
 GEONAMES_USER = os.getenv("GEONAMES_USERNAME", "century.boy")
@@ -69,13 +68,6 @@ except Exception as e:
 class AstrologyService:
     def __init__(self) -> None:
         self._logger = logging.getLogger(__name__)
-        # Initialize Google AI client for enhanced compatibility analysis
-        try:
-            genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-            self.ai_client = genai
-        except Exception as e:
-            self._logger.warning(f"Google AI client initialization failed: {e}")
-            self.ai_client = None
 
     def build_natal_chart(
         self, person: BirthInfo, lat: Optional[float], lon: Optional[float], tz_name: Optional[str] = None
@@ -606,8 +598,8 @@ class AstrologyService:
         mars_b = self._get_planet_sign(chart_b, "Mars") or chart_b.sun_sign
         relationship_score = self._element_score(mars_a, mars_b)
         
-        # Generate AI-enhanced compatibility analysis
-        ai_analysis = self._get_ai_compatibility_analysis(chart_a, chart_b, score)
+        # Legacy AI analysis was removed
+        ai_analysis = None
         
         # Generate advice based on compatibility
         if score >= 80:
@@ -636,8 +628,8 @@ class AstrologyService:
             f"Mars {mars_a} - Mars {mars_b}: {self._strength_phrase(relationship_score)}"
         ]
         
-        # Add AI-generated detailed reasoning
-        detailed_reasoning = self._get_ai_detailed_reasoning(chart_a, chart_b)
+        # Legacy AI analysis was removed
+        detailed_reasoning = None
 
         return CompatibilityDetails(
             score=score,

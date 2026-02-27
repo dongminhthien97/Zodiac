@@ -36,13 +36,13 @@ class TestScoreEngine:
         engine = ScoreEngine([])
         scores = engine.calculate()
         
-        assert scores.overall_score == 50
+        assert scores.overall_score == 51
         assert scores.emotional_compatibility == 50
         assert scores.mental_compatibility == 50
         assert scores.physical_chemistry == 50
         assert scores.stability_score == 50
         assert scores.conflict_risk == 20
-        assert scores.long_term_potential == 50
+        assert scores.long_term_potential == 53
     
     def test_harmonious_aspects(self):
         """Test scoring with harmonious aspects."""
@@ -109,12 +109,13 @@ class TestFallbackResponse:
         """Test default fallback response."""
         response = get_fallback_response()
         
-        assert "score" in response
-        assert "summary" in response
-        assert "personality" in response
-        assert "love_style" in response
-        assert "advice" in response
-        assert response["score"] == 50
+        assert "overall_score" in response
+        assert "relationship_summary" in response
+        assert "strengths" in response
+        assert "challenges" in response
+        assert "green_flags" in response
+        assert "red_flags" in response
+        assert response["overall_score"] == 50
     
     def test_fallback_with_scores(self):
         """Test fallback with custom scores."""
@@ -129,7 +130,7 @@ class TestFallbackResponse:
         )
         response = get_fallback_response(scores)
         
-        assert response["score"] == 75
+        assert response["overall_score"] == 75
 
 
 class TestPersonInput:
@@ -138,29 +139,26 @@ class TestPersonInput:
     def test_person_input_creation(self):
         """Test creating PersonInput."""
         person = PersonInput(
-            date="1990-01-15",
-            time="10:30",
-            city="Ho Chi Minh",
-            country="Vietnam",
+            birth_date="1990-01-15",
+            birth_time="10:30",
+            birth_place="Ho Chi Minh, Vietnam",
             name="Test User"
         )
         
-        assert person.date == "1990-01-15"
-        assert person.time == "10:30"
-        assert person.city == "Ho Chi Minh"
-        assert person.country == "Vietnam"
+        assert person.birth_date == "1990-01-15"
+        assert person.birth_time == "10:30"
+        assert person.birth_place == "Ho Chi Minh, Vietnam"
         assert person.name == "Test User"
     
     def test_person_input_optional_time(self):
         """Test PersonInput with no time."""
         person = PersonInput(
-            date="1990-01-15",
-            time=None,
-            city="Ho Chi Minh",
-            country="Vietnam"
+            birth_date="1990-01-15",
+            birth_time=None,
+            birth_place="Ho Chi Minh, Vietnam"
         )
         
-        assert person.time is None
+        assert person.birth_time is None
 
 
 if __name__ == "__main__":

@@ -276,7 +276,10 @@ async def compatibility(raw_payload: dict = Body(...)) -> CompatibilityResponse:
 Hãy cung cấp một bản phân tích toàn diện, sâu sắc và thực tế."""
         
         # Generate AI report using Groq API
-        ai_service_instance = get_global_ai_service(settings)
+        ai_service_instance = get_global_ai_service(
+            api_key=settings.GROQ_API_KEY,
+            base_url=getattr(settings, 'GROQ_BASE_URL', "https://api.groq.com/openai/v1")
+        )
         if ai_service_instance:
             ai_report = await ai_service_instance.generate_long_report(prompt, min_words=1000)
         else:
@@ -527,10 +530,10 @@ async def natal(raw_payload: dict = Body(...)) -> NatalAIResponse:
         return NatalAIResponse(
             meta={
                 "name": person_input.name,
-                "birth_date": person_input.date,
-                "birth_time": person_input.time,
+                "birth_date": person_input.birth_date,
+                "birth_time": person_input.birth_time,
                 "time_unknown": True,
-                "birth_place": person_input.city + ", " + person_input.country,
+                "birth_place": person_input.birth_place,
                 "lat": lat,
                 "lon": lon,
                 "resolved_address": "Fallback mode",
@@ -567,7 +570,8 @@ async def natal_micro(raw_payload: dict = Body(...)) -> dict:
         )
 
     # Get coordinates with fallback
-    lat, lon, addr = geocoder.geocode(payload.person.birth_place)
+    result = geocoder.geocode(payload.person.birth_place)
+    lat, lon, addr = result.get('lat'), result.get('lon'), result.get('formatted', '')
     
     if lat is None or lon is None:
         fallback_coords = {
@@ -747,8 +751,10 @@ def compatibility_professional(raw_payload: dict = Body(...)) -> CompatibilityRe
     geocoder = GeocodingService()
     
     # Get coordinates for both people
-    lat_a, lon_a, _ = geocoder.geocode(payload.person_a.birth_place)
-    lat_b, lon_b, _ = geocoder.geocode(payload.person_b.birth_place)
+    result_a = geocoder.geocode(payload.person_a.birth_place)
+    result_b = geocoder.geocode(payload.person_b.birth_place)
+    lat_a, lon_a = result_a.get('lat'), result_a.get('lon')
+    lat_b, lon_b = result_b.get('lat'), result_b.get('lon')
     
     # Calculate compatibility with professional analysis
     try:
@@ -1037,19 +1043,17 @@ async def compatibility_v2(raw_payload: dict = Body(...)) -> dict:
     
     # Build PersonInput objects
     person_a_input = PersonInput(
-        date=payload.person_a.birth_date,
-        time=payload.person_a.birth_time,
-        city=payload.person_a.birth_place.split(",")[0] if payload.person_a.birth_place else "Unknown",
-        country=payload.person_a.birth_place.split(",")[-1].strip() if payload.person_a.birth_place else "Unknown",
+        birth_date=payload.person_a.birth_date,
+        birth_time=payload.person_a.birth_time,
+        birth_place=payload.person_a.birth_place,
         name=payload.person_a.name,
         time_unknown=payload.person_a.time_unknown
     )
     
     person_b_input = PersonInput(
-        date=payload.person_b.birth_date,
-        time=payload.person_b.birth_time,
-        city=payload.person_b.birth_place.split(",")[0] if payload.person_b.birth_place else "Unknown",
-        country=payload.person_b.birth_place.split(",")[-1].strip() if payload.person_b.birth_place else "Unknown",
+        birth_date=payload.person_b.birth_date,
+        birth_time=payload.person_b.birth_time,
+        birth_place=payload.person_b.birth_place,
         name=payload.person_b.name,
         time_unknown=payload.person_b.time_unknown
     )

@@ -42,11 +42,11 @@ TEMPERATURE = 0.7
 @dataclass
 class PersonInput:
     """Input data for a person."""
-    date: str
-    time: Optional[str]
-    city: str
-    country: str
+    birth_date: str
+    birth_time: Optional[str]
+    birth_place: str
     name: Optional[str] = None
+    time_unknown: bool = False
 
 
 @dataclass
@@ -397,15 +397,15 @@ Schema JSON yêu cầu:
 
 NGƯỜI A:
 - Tên: {person_a.name or 'Không xác định'}
-- Ngày sinh: {person_a.date}
-- Giờ sinh: {person_a.time or 'Không xác định'}
-- Nơi sinh: {person_a.city}, {person_a.country}
+- Ngày sinh: {person_a.birth_date}
+- Giờ sinh: {person_a.birth_time or 'Không xác định'}
+- Nơi sinh: {person_a.birth_place}
 
 NGƯỜI B:
 - Tên: {person_b.name or 'Không xác định'}
-- Ngày sinh: {person_b.date}
-- Giờ sinh: {person_b.time or 'Không xác định'}
-- Nơi sinh: {person_b.city}, {person_b.country}
+- Ngày sinh: {person_b.birth_date}
+- Giờ sinh: {person_b.birth_time or 'Không xác định'}
+- Nơi sinh: {person_b.birth_place}
 
 ĐIỂM SỐ (đã tính toán):
 - Tổng quan: {scores.overall_score}/100
