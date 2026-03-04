@@ -256,12 +256,22 @@ class NatalTransformer:
         planet_name: str
     ) -> Optional[str]:
         """Get interpretation for a specific planet from AI interpretations."""
-        if not ai_interpretations or "planets" not in ai_interpretations:
+        if not ai_interpretations:
             return None
         
-        for planet in ai_interpretations["planets"]:
-            if planet.get("planet") == planet_name:
-                return planet.get("interpretation")
+        # Try to get interpretations from 'planet_interpretations' first
+        interpretations_list = ai_interpretations.get("planet_interpretations")
+        
+        # If 'planet_interpretations' is not found or empty, fallback to 'planets'
+        if not interpretations_list:
+            interpretations_list = ai_interpretations.get("planets")
+        
+        if not interpretations_list: # If still no interpretations, return None
+            return None
+        
+        for planet_data in interpretations_list:
+            if planet_data.get("planet") == planet_name:
+                return planet_data.get("interpretation")
         
         return None
     
@@ -271,10 +281,20 @@ class NatalTransformer:
         aspect_data: AspectData
     ) -> Optional[str]:
         """Get interpretation for a specific aspect from AI interpretations."""
-        if not ai_interpretations or "aspects" not in ai_interpretations:
+        if not ai_interpretations:
             return None
         
-        for aspect in ai_interpretations["aspects"]:
+        # Try to get interpretations from 'aspect_interpretations' first
+        interpretations_list = ai_interpretations.get("aspect_interpretations")
+        
+        # If 'aspect_interpretations' is not found or empty, fallback to 'aspects'
+        if not interpretations_list:
+            interpretations_list = ai_interpretations.get("aspects")
+        
+        if not interpretations_list: # If still no interpretations, return None
+            return None
+        
+        for aspect in interpretations_list:
             if (aspect.get("aspect_type") == aspect_data.aspect_type and
                 aspect.get("planet_1") == aspect_data.planet_a and
                 aspect.get("planet_2") == aspect_data.planet_b):

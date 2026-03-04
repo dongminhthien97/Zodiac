@@ -7,6 +7,7 @@ Pure calculation logic, no AI, no schema mapping.
 
 from __future__ import annotations
 
+import logging
 import swisseph as swe
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional, Tuple
@@ -14,6 +15,8 @@ from dataclasses import dataclass
 from pydantic import BaseModel, ConfigDict
 
 from models.compatibility_schema import CompatibilityResponse, RelationshipSummary
+
+logger = logging.getLogger(__name__)
 
 
 class PersonInput(BaseModel):
@@ -207,13 +210,20 @@ class AstrologyEngine:
                 p1 = planets[i]
                 p2 = planets[j]
                 
-                # Calculate angular distance
-                diff = abs((p1.longitude - p2.longitude + 180.0) % 360.0 - 180.0)
+                # Calculate angular distance with normalization
+                # angle = abs(long1 - long2)
+                # if angle > 180: angle = 360 - angle
+                raw_diff = abs(p1.longitude - p2.longitude)
+                diff = raw_diff if raw_diff <= 180.0 else 360.0 - raw_diff
+                
+                logger.info(f"Checking aspect: {p1.name} and {p2.name}, angle: {diff:.2f}°")
                 
                 # Check for aspects
+                found_for_pair = False
                 for aspect_type, angle in self.ASPECT_ANGLES.items():
                     d = abs(diff - angle)
                     if d <= orb:
+                        logger.info(f"Found aspect: {p1.name} {aspect_type} {p2.name} (orb: {d:.2f}°)")
                         aspect = AspectData(
                             planet_a=p1.name,
                             planet_b=p2.name,
@@ -221,7 +231,15 @@ class AstrologyEngine:
                             orb=round(float(d), 2)
                         )
                         aspects.append(aspect)
+                        found_for_pair = True
                         break
+                
+                # Debugging trine specifically if not found
+                if not found_for_pair:
+                    trine_angle = self.ASPECT_ANGLES.get("trine", 120.0)
+                    trine_d = abs(diff - trine_angle)
+                    if trine_d <= 8.0:  # Temp increase to 8 for debugging
+                        logger.debug(f"DEBUG: Near-miss trine between {p1.name} and {p2.name}: {diff:.2f}° (orb: {trine_d:.2f}°, limit: {orb})")
         
         return aspects
     
@@ -294,20 +312,33 @@ class AstrologyEngine:
                     lon_a = planets_a[planet_a_name].longitude
                     lon_b = planets_b[planet_b_name].longitude
                     
-                    # Calculate angular distance
-                    diff = abs((lon_a - lon_b + 180.0) % 360.0 - 180.0)
+                    # Calculate angular distance with normalization
+                    raw_diff = abs(lon_a - lon_b)
+                    diff = raw_diff if raw_diff <= 180.0 else 360.0 - raw_diff
                     
+                    logger.info(f"Checking cross-chart aspect: {planet_a_name} (A) and {planet_b_name} (B), angle: {diff:.2f}°")
+                    
+                    found_for_pair = False
                     for aspect_type, angle in self.ASPECT_ANGLES.items():
-                        orb = abs(diff - angle)
-                        if orb <= 6.0:  # Standard orb
+                        orb_val = abs(diff - angle)
+                        if orb_val <= 6.0:  # Standard orb
+                            logger.info(f"Found cross-chart aspect: {planet_a_name} {aspect_type} {planet_b_name} (orb: {orb_val:.2f}°)")
                             aspect = AspectData(
                                 planet_a=planet_a_name,
                                 planet_b=planet_b_name,
                                 aspect_type=aspect_type,
-                                orb=round(orb, 2)
+                                orb=round(orb_val, 2)
                             )
                             aspects.append(aspect)
+                            found_for_pair = True
                             break
+                    
+                    # Debugging trine specifically if not found
+                    if not found_for_pair:
+                        trine_angle = self.ASPECT_ANGLES.get("trine", 120.0)
+                        trine_d = abs(diff - trine_angle)
+                        if trine_d <= 8.0:
+                            logger.debug(f"DEBUG: Near-miss cross-chart trine between {planet_a_name} and {planet_b_name}: {diff:.2f}° (orb: {trine_d:.2f}°, limit: 6.0)")
         
         return aspects
     

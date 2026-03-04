@@ -198,8 +198,16 @@ Schema JSON yêu cầu:
             planets_data, aspects_data
         )
         
+        logger.info(f"[{request_id}] Starting AI interpretation generation for {person_name}")
+        
+        # Check API key
+        if not self.api_key:
+            logger.error(f"[{request_id}] GROQ_API_KEY is missing!")
+            return None
+
         for attempt in range(MAX_RETRIES + 1):
             try:
+                logger.info(f"[{request_id}] Attempt {attempt + 1}: Calling Groq API...")
                 raw = await self._call_groq(
                     messages=[
                         {"role": "system", "content": self.SYSTEM_PROMPT},
@@ -208,24 +216,17 @@ Schema JSON yêu cầu:
                     request_id=request_id
                 )
                 
-                # Log raw response for debugging
-                logger.debug("[%s] Raw Groq response (first 500 chars): %s", request_id, raw[:500])
+                logger.debug(f"[{request_id}] Raw Groq response received (len: {len(raw)})")
                 
                 parsed = self._safe_parse_json(raw, request_id)
-                
-                if parsed is not None:
-                    logger.info("[%s] Natal interpretations generated successfully on attempt %d", request_id, attempt + 1)
+                if parsed:
+                    logger.info(f"[{request_id}] Successfully generated and parsed AI interpretations")
                     return parsed
-                
-                logger.warning(
-                    "[%s] Attempt %d/%d: JSON parsing failed",
-                    request_id, attempt + 1, MAX_RETRIES + 1
-                )
                 
             except Exception as e:
                 logger.warning(
-                    "[%s] Attempt %d/%d: API error: %s",
-                    request_id, attempt + 1, MAX_RETRIES + 1, e
+                    "[%s] Attempt %d/%d: AI generation error: %s",
+                    request_id, attempt + 1, MAX_RETRIES + 1, str(e)
                 )
         
         # All attempts failed
