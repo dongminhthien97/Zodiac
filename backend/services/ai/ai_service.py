@@ -74,9 +74,10 @@ class AIService:
             )
             
             # Generate JSON using Groq client
-            result = await self.groq_client.generate_json(
-                prompt=user_prompt,
-                request_id=request_id
+            result = await self.groq_client.generate_json_with_system(
+                system_prompt=NatalPrompts.SYSTEM_PROMPT,
+                user_prompt=user_prompt,
+                request_id=request_id,
             )
             
             logger.info("[%s] Natal interpretations generated successfully", request_id)
@@ -118,9 +119,10 @@ class AIService:
             )
             
             # Generate JSON using Groq client
-            result = await self.groq_client.generate_json(
-                prompt=user_prompt,
-                request_id=request_id
+            result = await self.groq_client.generate_json_with_system(
+                system_prompt=CompatibilityPrompts.SYSTEM_PROMPT,
+                user_prompt=user_prompt,
+                request_id=request_id,
             )
             
             logger.info("[%s] Compatibility analysis generated successfully", request_id)

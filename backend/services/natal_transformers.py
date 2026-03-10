@@ -90,16 +90,31 @@ class NatalTransformer:
         sun_sign = chart.sun_sign
         moon_sign = chart.moon_sign
         rising_sign = chart.ascendant
-        
+
+        # Try to use real houses from engine when available
+        sun_house = next((p.house for p in chart.planets if p.name == "Sun" and p.house is not None), 1)
+        moon_house = next((p.house for p in chart.planets if p.name == "Moon" and p.house is not None), 4)
+
+        # Prefer core_identity block when available
+        core_identity = (ai_interpretations or {}).get("core_identity") or {}
+
         # Get interpretations from AI or use defaults
-        sun_interpretation = NatalTransformer._get_planet_interpretation(
-            ai_interpretations, "Sun"
+        def _as_nonempty_str(value: Any) -> Optional[str]:
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+            return None
+
+        sun_interpretation = (
+            (_as_nonempty_str(core_identity.get("sun_sign")) if isinstance(core_identity, dict) else None)
+            or NatalTransformer._get_planet_interpretation(ai_interpretations, "Sun")
         )
-        moon_interpretation = NatalTransformer._get_planet_interpretation(
-            ai_interpretations, "Moon"
+        moon_interpretation = (
+            (_as_nonempty_str(core_identity.get("moon_sign")) if isinstance(core_identity, dict) else None)
+            or NatalTransformer._get_planet_interpretation(ai_interpretations, "Moon")
         )
-        rising_interpretation = NatalTransformer._get_planet_interpretation(
-            ai_interpretations, "Ascendant"
+        rising_interpretation = (
+            (_as_nonempty_str(core_identity.get("rising_sign")) if isinstance(core_identity, dict) else None)
+            or NatalTransformer._get_planet_interpretation(ai_interpretations, "Ascendant")
         )
         
         # Build summary
@@ -109,12 +124,12 @@ class NatalTransformer:
             "summary": summary,
             "sun_sign": {
                 "sign": sun_sign,
-                "house": 1,  # Default house for core identity
+                "house": sun_house,
                 "interpretation": sun_interpretation or f"Phân tích Mặt Trời {sun_sign} đang được xử lý..."
             },
             "moon_sign": {
                 "sign": moon_sign,
-                "house": 4,  # Default house for emotional core
+                "house": moon_house,
                 "interpretation": moon_interpretation or f"Phân tích Mặt Trăng {moon_sign} đang được xử lý..."
             },
             "rising_sign": {
@@ -294,11 +309,35 @@ class NatalTransformer:
         if not interpretations_list: # If still no interpretations, return None
             return None
         
+        target_type = str(aspect_data.aspect_type or "").strip().lower()
+        target_a = str(aspect_data.planet_a or "").strip()
+        target_b = str(aspect_data.planet_b or "").strip()
+
         for aspect in interpretations_list:
-            if (aspect.get("aspect_type") == aspect_data.aspect_type and
-                aspect.get("planet_1") == aspect_data.planet_a and
-                aspect.get("planet_2") == aspect_data.planet_b):
-                return aspect.get("interpretation")
+            if not isinstance(aspect, dict):
+                continue
+
+            aspect_type = str(aspect.get("aspect_type") or aspect.get("type") or "").strip().lower()
+            if aspect_type != target_type:
+                continue
+
+            planet_1 = str(
+                aspect.get("planet_1")
+                or aspect.get("planet1")
+                or aspect.get("planet_a")
+                or ""
+            ).strip()
+            planet_2 = str(
+                aspect.get("planet_2")
+                or aspect.get("planet2")
+                or aspect.get("planet_b")
+                or ""
+            ).strip()
+
+            if (planet_1 == target_a and planet_2 == target_b) or (planet_1 == target_b and planet_2 == target_a):
+                interpretation = aspect.get("interpretation")
+                if isinstance(interpretation, str) and interpretation.strip():
+                    return interpretation.strip()
         
         return None
     

@@ -22,6 +22,7 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 MAX_RETRIES = 2
 REQUEST_TIMEOUT = 60.0
 TEMPERATURE = 0.7
+MAX_TOKENS = 4096
 
 
 class NatalAIService:
@@ -259,6 +260,7 @@ Schema JSON yêu cầu:
             "model": self.model,
             "messages": messages,
             "temperature": TEMPERATURE,
+            "max_tokens": MAX_TOKENS,
             "stream": False,  # IMPORTANT: No streaming
             "response_format": {"type": "json_object"},  # Strict JSON mode
         }

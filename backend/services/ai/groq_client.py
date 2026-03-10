@@ -77,11 +77,51 @@ Return only a valid JSON object that can be parsed directly."""
         except Exception as e:
             logger.error("[%s] Groq JSON generation failed: %s", request_id, e)
             raise Exception(f"Groq JSON generation failed: {e}") from e
+
+    async def generate_json_with_system(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        request_id: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+    ) -> Dict[str, Any]:
+        """Generate JSON with a custom system prompt (still enforces JSON-only output)."""
+        request_id = request_id or f"groq_{int(time.time() * 1000)}"
+
+        json_enforcer = """You must respond strictly in valid JSON format only.
+Do not add any explanation, markdown, or additional text.
+Return only a valid JSON object that can be parsed directly."""
+
+        system_message = f"{system_prompt.strip()}\n\n{json_enforcer}"
+
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        raw = await self._call_groq(
+            messages,
+            request_id,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+        parsed = self._safe_parse_json(raw, request_id)
+        if parsed is None:
+            raise Exception("Failed to parse Groq response as JSON")
+
+        logger.info("[%s] Groq JSON generation successful", request_id)
+        return parsed
     
     async def _call_groq(
         self,
         messages: list[dict[str, str]],
         request_id: Optional[str] = None,
+        *,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
     ) -> str:
         """Call Groq API with clean error handling.
         
@@ -103,8 +143,8 @@ Return only a valid JSON object that can be parsed directly."""
         payload = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": 4096,
+            "temperature": float(temperature),
+            "max_tokens": int(max_tokens),
             "stream": False,  # No streaming
         }
         
